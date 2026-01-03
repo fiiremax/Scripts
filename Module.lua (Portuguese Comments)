@@ -1,0 +1,715 @@
+local UModule = {}
+-- Variaveis Gerais
+local vgs = {
+    CE     =     game:GetService("ReplicatedStorage").CharacterEvents,
+    CAS    =     game:GetService("ContextActionService"),
+    p      =     game:GetService("Players").LocalPlayer,
+    VIM    =     game:GetService("VirtualInputManager"),
+    RS     =     game:GetService("ReplicatedStorage"),
+    UIS    =     game:GetService("UserInputService"),
+    TXS    =     game:GetService("TextChatService"),
+    RF     =     game:GetService("ReplicatedFirst"),
+    PS     =     game:GetService("PhysicsService"),
+    TS     =     game:GetService("TweenService"),
+    RunS   =     game:GetService("RunService"),
+    SG     =     game:GetService("StarterGui"),
+    ps     =     game:GetService("Players"),
+    Debris =     game:GetService("Debris"),
+}
+
+getgenv().var = UModule.var
+
+----
+local gtable = getgenv()
+--- Ambiente controlado(Para melhor Desempenho)
+UModule.env = setmetatable({}, {
+    __newindex = function(t, key, value)
+        local old = gtable[key]
+        
+        if old ~= nil then
+            if type(old) == "boolean" then
+                gtable[key] = false
+                return
+            end
+            if type(old) == "string" then
+                gtable[key] = nil
+            end
+            
+            if type(old) == "userdata" or (type(old) == "table" and type(rawget(old, "Disconnect")) == "function") then
+                pcall(function()
+                    old:Disconnect()
+                end)
+                gtable[key] = nil
+            elseif type(old) == "table" then
+                for k, v in pairs(old) do
+                    if type(v) == "boolean" then
+                        old[k] = false
+                    elseif type(v) == "string" then
+                        old[k] = nil
+                    elseif type(v) == "userdata" or (type(v) == "table" and type(rawget(v, "Disconnect")) == "function") then
+                        pcall(function()
+                            v:Disconnect()
+                        end)
+                        old[k] = nil
+                    end
+                end
+            end
+        end
+        
+        gtable[key] = value
+    end,
+    __index = function(t, key)
+        return gtable[key]
+    end
+})
+--ov(Others Variaveis// outras variaveis)
+UModule.env.ov = {
+    char = vgs.p.Character or vgs.p.CharacterAdded:Wait(),
+    inv = workspace[vgs.p.Name .. "SpawnedInToys"],
+    cam = workspace.CurrentCamera,
+    mouse = vgs.p:GetMouse(),
+}
+-- variaveis temporarias
+UModule.env.Valores = {}
+UModule.env.Toggle = {}
+UModule.env.Conns = {}
+
+UModule.env.TempV = {}
+UModule.env.TempL = {}
+UModule.env.TempT = {}
+UModule.env.TempC = {}
+UModule.env.Drops = {}
+UModule.env.Lists = {}
+UModule.env.l = {}
+UModule.env.v = {}
+-- renovaçao de character
+UModule.env.Conns.CharAddCnn = vgs.p.CharacterAdded:Connect(function(char)
+    UModule.env.ov.char = char
+end)
+-- p(Procurar(part, modelo, tempo))
+function UModule.p(pt, mdl, time)
+    if time then 
+        return mdl:WaitForChild(pt, time) 
+    else 
+        return mdl:FindFirstChild(pt) 
+    end
+end
+-- MBP(MyBodyPart // minha part do corpo ex: MBP("HumanoidRootPart"))
+function UModule.MBP(PN)
+    return UModule.env.ov.char:WaitForChild(PN)
+end
+-- Pega modelos no inv(FTAP)
+function UModule.inpast(model)
+    return UModule.env.ov.inv:FindFirstChild(model)
+end
+-- Retorna lista com nome e diplay nome (Dropdown)
+function UModule.GPNames(mode, arg)
+    local pnames = {}
+    if mode == "func" then
+        for _, p in pairs(vgs.ps:GetPlayers()) do
+            if p ~= vgs.p and not arg() then
+                table.insert(pnames, p.Name .. " (" .. p.DisplayName .. ")")
+            end
+        end
+        return pnames
+    end
+    for _, p in pairs(vgs.ps:GetPlayers()) do
+        if p ~= vgs.p then
+            local fullName = p.Name .. " (" .. p.DisplayName .. ")"
+            table.insert(pnames, fullName)
+        end
+    end
+    return pnames
+end
+-- StickyPartEvent(part, loc(part), cframe, angles)
+function UModule.SPE(pt, loc, cf, ang)
+    if pt and loc and cf then
+        vgs.RS.PlayerEvents.StickyPartEvent:FireServer(
+            pt, 
+            loc, 
+            cf * ang or CFrame.Angles(0, 0, 0)
+        )
+    end
+end
+-- Stop Velocity(Sem argumentos = vel0 para meu humanoidrootpart, target = tirar velocidade de outros)
+function UModule.SVel(mode, target)
+    if target then
+        if target:IsA("BasePart") then
+            if mode == "Target" then
+                target.Velocity = Vector3.zero
+                target.RotVelocity = Vector3.zero
+                return 
+            end
+        elseif target:IsA("Model") then
+            if mode == "Target" then
+                for _, part in ipairs(target:GetDescendants()) do
+                    if part:IsA("BasePart") then  
+                        part.Velocity = Vector3.zero
+                        part.RotVelocity = Vector3.zero
+                    end
+                end
+                return 
+            end
+        end
+    end
+    
+    local hrp = UModule.env.ov.char:WaitForChild("HumanoidRootPart")
+    hrp.AssemblyLinearVelocity = Vector3.zero
+end
+--Find Item in front (retorna item na mira)
+function UModule.FINF()
+    local unitRay = UModule.env.ov.cam:ScreenPointToRay(UModule.env.ov.mouse.X, UModule.env.ov.mouse.Y)
+    if not unitRay then
+        return nil
+    end
+    
+    local ray = Ray.new(unitRay.Origin, unitRay.Direction * 10000)
+    local part, position = workspace:FindPartOnRay(ray, UModule.env.ov.char, false, true)
+    
+    if part and part:IsA("BasePart") and not part:IsDescendantOf(UModule.env.ov.char) then
+        return part
+    end
+    
+    return nil
+end
+-- Is ProtectedPart + P :D (retorna part protegida)
+function UModule.IPPP(part, mode)
+    local function IPIM(part, model)
+        return model and part:IsDescendantOf(model) or false
+    end
+    
+    local function IPWF(folderName)
+        local folder = workspace:FindFirstChild(folderName)
+        return IPIM(part, folder)
+    end
+    
+    local function IPIGP()
+        local gpow = workspace:FindFirstChild("GrabParts")
+        if IPIM(part, gpow) then return true end
+        
+        for _, character in pairs(workspace:GetChildren()) do
+            if character:IsA("Model") and character ~= UModule.env.ov.char then
+                local gponc = character:FindFirstChild("GrabParts")
+                if IPIM(part, gponc) then return true end
+            end
+        end
+        
+        return false
+    end
+    
+    local IPt = IPWF("Map")
+        or IPWF("Plots")
+        or IPWF("Slots")
+        or IPIGP()
+        or part:IsDescendantOf(UModule.env.ov.char)
+    
+    if mode == 2 then
+        if part:IsDescendantOf(UModule.env.ov.inv) then
+            return true
+        end
+    end
+    
+    return IPt
+end
+-- tp (Position)
+function UModule.tp(a)
+    local h = UModule.MBP("HumanoidRootPart")
+    local t = typeof(a) == "Vector3" and a or 
+              (a:IsA("Model") and (a:GetPrimaryPartCFrame().Position or 
+              a:FindFirstChild("HumanoidRootPart").Position) or a.Position)
+    
+    if not t then return end
+    
+    local hum = h.Parent:FindFirstChildOfClass("Humanoid")
+    local hipHeight = hum and hum.HipHeight or 0
+    local offset = (h.Size.Y / 2) + hipHeight + 3.5
+    local currentCF = h.Parent:GetPivot()
+    
+    h.Parent:PivotTo(CFrame.new(t.X, t.Y + offset, t.Z) * (currentCF - currentCF.Position))
+end
+-- Spawn Item in CFrame(nome, cframe, front(frente), default)
+function UModule.SICF(itemName, cframe, mode)
+    task.spawn(function()
+        local hrp = UModule.env.ov.char:WaitForChild("HumanoidRootPart")
+        local rotation = Vector3.new(0, 0, 0)
+
+        if mode == "Default" then
+            local cf = hrp.CFrame
+            local spawnCFrame = cf * CFrame.new(5, 8, 25)
+            vgs.RS.MenuToys.SpawnToyRemoteFunction:InvokeServer(itemName, spawnCFrame, rotation)
+            return
+        
+        elseif mode == "Front" then
+            vgs.RS.MenuToys.SpawnToyRemoteFunction:InvokeServer(
+                itemName, 
+                hrp.CFrame - (hrp.CFrame.LookVector * 5) - Vector3.new(0, 0, 0), 
+                Vector3.new(0, 0, 0)
+            )
+            return
+        end
+
+        vgs.RS.MenuToys.SpawnToyRemoteFunction:InvokeServer(itemName, cframe, rotation)
+    end)
+end
+-- Auto Explicativo (ve se a part eta dentro da radius) 
+function UModule.IsAround(part, radius)
+    if part:IsA("Model") then
+        return (part.PrimaryPart.Position - UModule.MBP("HumanoidRootPart").Position).Magnitude <= radius
+    else
+        return (part.Position - UModule.MBP("HumanoidRootPart").Position).Magnitude <= radius
+    end
+end
+-- FMC(30)/ FMC(plrs, func, valor)
+function UModule.FMC(arg1, arg2, arg3)
+    if type(arg1) == "string" and arg1 == "plrs" then
+        local char = game.Players.LocalPlayer.Character
+        if not char then return end
+        
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player.Character and player ~= game.Players.LocalPlayer then
+                local phrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if phrp and UModule.IsAround(phrp, arg3 or 29) then
+                    if arg2 and type(arg2) == "function" then
+                        arg2(player.Character)
+                    end
+                end
+            end
+        end
+        return
+    end
+    
+    if type(arg1) ~= "number" then
+        if not arg1 then return nil end
+        local char = arg1:FindFirstAncestorOfClass("Model")
+        return char and char:FindFirstChild("Humanoid") 
+            and game:GetService("Players"):GetPlayerFromCharacter(char) or nil
+    end
+    
+    local char = game.Players.LocalPlayer.Character
+    if not char then return {} end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {} end
+    
+    local results, seen = {}, {}
+    
+    local filter = {char}
+    local enames = {"Map", "Plots", "Slots", "GrabParts"}
+    
+    for _, name in ipairs(enames) do
+        local obj = workspace:FindFirstChild(name)
+        if obj then table.insert(filter, obj) end
+    end
+    
+    for _, model in ipairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model ~= char then
+            local gp = model:FindFirstChild("GrabParts")
+            if gp then table.insert(filter, gp) end
+        end
+    end
+    
+    if arg3 ~= 2 then
+        local inv = workspace:FindFirstChild(game.Players.LocalPlayer.Name .. "SpawnedInToys")
+        if inv then table.insert(filter, inv) end
+    end
+    
+    local params = OverlapParams.new()
+    params.FilterDescendantsInstances = filter
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local parts = workspace:GetPartBoundsInBox(
+        CFrame.new(hrp.Position), 
+        Vector3.new(arg1 * 2, arg1 * 2, arg1 * 2), 
+        params
+    )
+    
+    for _, part in ipairs(parts) do
+        if not UModule.IPPP(part, arg3) then
+            local model = part:FindFirstAncestorOfClass("Model")
+            
+            if arg2 then
+                if model and arg2(model) and not seen[model] then
+                    seen[model] = true
+                    table.insert(results, model)
+                end
+            else
+                if model and not seen[model] then
+                    seen[model] = true
+                    table.insert(results, model)
+                elseif not model and not seen[part] then
+                    seen[part] = true
+                    table.insert(results, part)
+                end
+            end
+        end
+    end
+    
+    return results
+end
+
+UModule.env.Vars = {}
+
+local vC = {}
+-- var() gerenciador de variaveis
+function UModule.var(a1, a2, a3)
+    if type(a1) == "table" and a2 == nil and a3 == nil then
+        for k, v in pairs(a1) do
+            UModule.env.Vars[k] = v
+            vC[k] = v
+        end
+        return true
+    end
+    
+    if type(a1) == "string" and type(a2) == "table" and a3 == nil then
+        UModule.env.Vars[a1] = a2
+        vC[a1] = a2
+        return vC[a1]
+    end
+    
+    if a3 ~= nil then
+        if type(a1) == "table" then
+            local old = a1[a2]
+            if old ~= a3 then
+                a1[a2] = a3
+            end
+            return a1[a2]
+        end
+        return nil
+    end
+    
+    if a2 ~= nil then
+        if type(a1) ~= "string" then return nil end
+        
+        local function searchInTable(tbl, key, newValue, visited)
+            visited = visited or {}
+            if visited[tbl] then return nil end
+            visited[tbl] = true
+            
+            if tbl[key] ~= nil then
+                if newValue ~= nil then
+                    tbl[key] = newValue
+                    vC[key] = newValue
+                end
+                return tbl[key]
+            end
+            
+            for k, v in pairs(tbl) do
+                if type(v) == "table" and k ~= "Conns" and k ~= "Connections" then
+                    local result = searchInTable(v, key, newValue, visited)
+                    if result ~= nil then
+                        return result
+                    end
+                end
+            end
+            
+            return nil
+        end
+        
+        local result = searchInTable(UModule.env, a1, a2)
+        
+        if result ~= nil then
+            return result
+        end
+        
+        UModule.env.Vars[a1] = a2
+        vC[a1] = a2
+        return vC[a1]
+    end
+    
+    if a1 ~= nil then
+        local vN = tostring(a1)
+        
+        if vC[vN] ~= nil then
+            return vC[vN]
+        end
+        
+        local function searchInTable(tbl, key, visited)
+            visited = visited or {}
+            if visited[tbl] then return nil end
+            visited[tbl] = true
+            
+            if tbl[key] ~= nil then
+                vC[key] = tbl[key]
+                return tbl[key]
+            end
+            
+            for k, v in pairs(tbl) do
+                if type(v) == "table" and k ~= "Conns" and k ~= "Connections" then
+                    local result = searchInTable(v, key, visited)
+                    if result ~= nil then
+                        return result
+                    end
+                end
+            end
+            
+            return nil
+        end
+        
+        local result = searchInTable(UModule.env, vN)
+        
+        return result
+    end
+end
+
+UModule.tm = {}
+-- gerenciador de tabela
+function UModule.tm.Add(tbl, key, value)
+    if type(tbl) ~= "table" then
+        return false
+    end
+    
+    if key == nil then
+        return false
+    end
+    
+    if value ~= nil then
+        tbl[key] = value
+    else
+        local exists = false
+        for _, v in pairs(tbl) do
+            if v == key then
+                exists = true
+                break
+            end
+        end
+        
+        if not exists then
+            table.insert(tbl, key)
+        end
+    end
+    
+    return true
+end
+
+function UModule.tm.Find(tbl, key)
+    if type(tbl) ~= "table" then
+        return nil
+    end
+    
+    if key == nil then
+        return nil
+    end
+    
+    if tbl[key] ~= nil then
+        return tbl[key]
+    end
+    
+    for i, v in pairs(tbl) do
+        if v == key then
+            return i, v
+        end
+    end
+    
+    return nil
+end
+
+function UModule.tm.val(tbl, key)
+    if type(tbl) ~= "table" then
+        return false
+    end
+    
+    if key == nil then
+        return false
+    end
+    
+    local value = tbl[key]
+    
+    if value == nil then
+        for _, v in pairs(tbl) do
+            if v == key then
+                return true
+            end
+        end
+        return false
+    end
+    
+    if type(value) == "boolean" then
+        return value
+    end
+    
+    if value ~= nil and value ~= false then
+        return true
+    end
+    
+    return false
+end
+
+function UModule.tm.Remove(tbl, key)
+    if type(tbl) ~= "table" then
+        return false
+    end
+    
+    if key == nil then
+        return false
+    end
+    
+    if tbl[key] ~= nil then
+        tbl[key] = nil
+        return true
+    end
+    
+    for i, v in pairs(tbl) do
+        if v == key then
+            if type(i) == "number" then
+                table.remove(tbl, i)
+            else
+                tbl[i] = nil
+            end
+            return true
+        end
+    end
+    
+    return false
+end
+
+function UModule.tm.Clear(tbl)
+    if type(tbl) ~= "table" then
+        return false
+    end
+    
+    for k in pairs(tbl) do
+        tbl[k] = nil
+    end
+    
+    return true
+end
+
+UModule.env.Connections = {}
+-- gerenciador de conecçoes(part, conn, func, nome)// conceçoes(part, PropertyChanged, val, func, nome)
+function UModule.cm(arg1, arg2, arg3, arg4, arg5)
+    if type(arg1) == "string" and arg2 == "disc" then
+        local connName = arg1
+        if UModule.env.Connections[connName] then
+            pcall(function()
+                UModule.env.Connections[connName]:Disconnect()
+            end)
+            UModule.env.Connections[connName] = nil
+        end
+        return
+    end
+    
+    local instance = arg1
+    local eventType = arg2
+    local callback, propName, connName
+    
+    if type(arg2) == "function" then
+        callback = arg2
+        connName = arg3
+        
+        if not connName then
+            connName = tostring(instance) .. "_Destroying_" .. tostring(callback)
+        end
+        
+        local connection = instance.Destroying:Connect(function()
+            callback()
+        end)
+        
+        UModule.env.Connections[connName] = {
+            connection = connection,
+            instance = instance,
+            eventType = "Destroying",
+            _callback = callback,
+            Disconnect = function(self)
+                if self.connection then
+                    pcall(function()
+                        self.connection:Disconnect()
+                    end)
+                    self.connection = nil
+                    UModule.env.Connections[connName] = nil
+                end
+            end
+        }
+        
+        return UModule.env.Connections[connName]
+    end
+    
+    if type(eventType) == "string" and (eventType == "PropertyChanged" or eventType:match("^GetPropertyChangedSignal")) then
+        propName = arg3
+        callback = arg4
+        connName = arg5
+        
+        if not propName or not callback then
+            warn("PropertyChanged requer o nome da propriedade e uma funçao callback")
+            return
+        end
+    else
+        callback = arg3
+        connName = arg4
+    end
+    
+    if not instance or not eventType or not callback then
+        return
+    end
+    
+    if not connName then
+        if propName then
+            connName = tostring(instance) .. "_" .. tostring(eventType) .. "_" .. propName .. "_" .. tostring(callback)
+        else
+            connName = tostring(instance) .. "_" .. tostring(eventType) .. "_" .. tostring(callback)
+        end
+    end
+    
+    if UModule.env.Connections[connName] then
+        local existingConn = UModule.env.Connections[connName]
+        if existingConn._callback == callback then
+            pcall(function()
+                existingConn.connection:Disconnect()
+            end)
+            UModule.env.Connections[connName] = nil
+        else
+            connName = connName .. "_" .. tick()
+        end
+    end
+    
+    local connection
+    local success, err = pcall(function()
+        if eventType == "PropertyChanged" then
+            connection = instance:GetPropertyChangedSignal(propName):Connect(callback)
+        else
+            local event = instance[eventType]
+            if event and typeof(event) == "RBXScriptSignal" then
+                connection = event:Connect(callback)
+            else
+                error("Evento '" .. eventType .. "' nao encontrado em " .. tostring(instance))
+            end
+        end
+    end)
+    
+    if not success then
+        warn("Erro ao criar conexao: " .. tostring(err))
+        return
+    end
+    
+    task.spawn(function()
+        instance.Destroying:Connect(function()
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+        end)
+    end)
+    
+    UModule.env.Connections[connName] = {
+        connection = connection,
+        instance = instance,
+        eventType = eventType,
+        propName = propName,
+        _callback = callback,
+        Disconnect = function(self)
+            if self.connection then
+                pcall(function()
+                    self.connection:Disconnect()
+                end)
+                self.connection = nil
+                UModule.env.Connections[connName] = nil
+            end
+        end
+    }
+    
+    return UModule.env.Connections[connName]
+end
+
+return UModule
