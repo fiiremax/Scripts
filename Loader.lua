@@ -49,6 +49,9 @@ function OrionLib:GenTheme(mainColor)
     return t
 end
 
+local u = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fiiremax/Scripts/refs/heads/main/Module.lua%20(Portuguese%20Comments)')))()
+local var = u.var
+
 OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(25, 25, 25))
 OrionLib.CurrentTheme = OrionLib.Themes.Default
 
@@ -794,7 +797,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			if not glow then
 				glow = Instance.new("UIStroke")
 				glow.Name = "SearchGlow"
-				glow.Thickness = 2
+				glow.Thickness = 1
 				glow.Transparency = 0
 				glow.Parent = frame
 			end
@@ -945,10 +948,10 @@ function OrionLib:MakeWindow(WindowConfig)
 		
 		local tbxatual = AddThemeObject(SearchBox, "Text")
 	
-		local SearchBar = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 1, 6), {
+		local SearchBar = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0.1, 6), {
 			Parent = WindowStuff,
-			Size = UDim2.new(0, 130, 0, 24),
-			Position = UDim2.new(1, -12, 0, 12),
+			Size = UDim2.new(0, 130, 0, 32),
+			Position = UDim2.new(1, -10, 0, 10),
 			AnchorPoint = Vector2.new(1, 0)
 		}), {
 			AddThemeObject(MakeElement("Stroke"), "Stroke"),
@@ -1025,7 +1028,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		DragPoint,
 		WindowStuff
 	}), "Main")
-
+    MainWindow.Active = true
 	resizebtt.Size = UDim2.new(0, 16, 0, 16)
 	resizebtt.Position = UDim2.new(1, -16, 1, -16)
 	resizebtt.BorderSizePixel = 0
@@ -1725,8 +1728,8 @@ function OrionLib:MakeWindow(WindowConfig)
 				SliderConfig.ValueName = SliderConfig.ValueName or ""
 				SliderConfig.Flag = SliderConfig.Flag or nil
 				SliderConfig.Save = SliderConfig.Save or false
-				SliderConfig.Block = SliderConfig.Block or true
-				SliderConfig.VarFunc = SliderConfig.VarFunc or nil
+				SliderConfig.Block = SliderConfig.Block 
+				SliderConfig.varFunc =  SliderConfig.varFunc or var
 			
 				local Slider = {
 					Value = SliderConfig.Default, 
@@ -1734,7 +1737,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					IsClicking = false  
 				}
 				local dragging = false
-				local laststate = nil
+				local laststate = false
 				local infinite = (SliderConfig.Max == math.huge)
 				local infthresh = 0.95
 			
@@ -1811,32 +1814,11 @@ function OrionLib:MakeWindow(WindowConfig)
 					vgs.TS:Create(SliderDrag, TweenInfo.new(0.25), {BackgroundColor3 = tgcollr}):Play()
 					vgs.TS:Create(SliderBar, TweenInfo.new(0.25), {BackgroundColor3 = tgcollr}):Play()
 				end
-			
+				
 				task.spawn(function()
 					while SliderFrame and SliderFrame.Parent do
-						local crrLstate = true
-						local varFunc = SliderConfig.VarFunc or _G.var or getgenv().var
-						
-						if type(SliderConfig.Block) == "string" then
-							if varFunc then
-								local varResult = varFunc(SliderConfig.Block)
-								if varResult ~= nil then
-									crrLstate = varResult
-								end
-							elseif _G.Toggle and _G.Toggle[SliderConfig.Block] ~= nil then
-								crrLstate = _G.Toggle[SliderConfig.Block]
-							elseif getgenv().Toggle and getgenv().Toggle[SliderConfig.Block] ~= nil then
-								crrLstate = getgenv().Toggle[SliderConfig.Block]
-							end
-						elseif type(SliderConfig.Block) == "boolean" then
-							crrLstate = SliderConfig.Block
-						elseif type(SliderConfig.Block) == "function" then
-							crrLstate = SliderConfig.Block()
-						end
-						
-						if laststate ~= crrLstate then
-							laststate = crrLstate
-							appblock(not crrLstate)
+						if SliderConfig.varFunc then
+							appblock(not SliderConfig.varFunc(SliderConfig.Block[1])[SliderConfig.Block[2]])
 						end
 						task.wait(0.1)
 					end
