@@ -1267,7 +1267,6 @@ function OrionLib:MakeWindow(WindowConfig)
 		TabConfig.Name = TabConfig.Name or "Tab"
 		TabConfig.Icon = TabConfig.Icon or ""
 		TabConfig.PremiumOnly = TabConfig.PremiumOnly or false
-		TabConfig.ScrollBarImageTransparency = 1
 
 		local TabFrame = SetChildren(SetProps(MakeElement("Button"), {
 			Size = UDim2.new(1, 0, 0, 30),
@@ -1288,7 +1287,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				Name = "Title"
 			}), "Text")
 		})
-
 		AddItemTable(Tabs, TabConfig.Name, TabFrame)
 
 		local Container = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 5), {
@@ -1303,6 +1301,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		}), "Divider")
 
 		Container.Name = TabConfig.Name
+		Container.ScrollBarImageTransparency = 1
 
 		AddConnection(Container.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 			Container.CanvasSize = UDim2.new(0, 0, 0, Container.UIListLayout.AbsoluteContentSize.Y + 30)
