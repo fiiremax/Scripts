@@ -454,6 +454,8 @@ function UModule.var(a1, a2, a3)
     end
 end
 
+getgenv().var = UModule.var
+
 UModule.tm = {}
 -- gerenciador de tabela
 function UModule.tm.Add(tbl, key, value)
