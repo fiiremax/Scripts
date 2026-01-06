@@ -283,7 +283,7 @@ local BlockedSlider = Tab:AddSlider({
         print(Value)
     end
 })
-
+```
 ## Dropdown
 
 Creates a dropdown menu with single or multiple selection.
