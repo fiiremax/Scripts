@@ -213,7 +213,6 @@ function ReturnProperty(Object)
         return "BackgroundColor3"
     end 
     
-    warn("ReturnProperty: Tipo não reconhecido -", Object.ClassName)
     return nil
 end
 
@@ -592,21 +591,29 @@ function OrionLib:MakeWindow(WindowConfig)
 			makefolder(WindowConfig.ConfigFolder)
 		end	
 	end
-
+	
+	local cch = {}
+	
 	function OrionLib:SetTheme()
 		local themeData = self.Themes[self.SelectedTheme]
 		if not themeData then return end
+		
 		for typeName, objects in pairs(self.ThemeObjects) do
 			local color = themeData[typeName]
 			if color then
-				for _, obj in ipairs(objects) do
-					local prop = ReturnProperty(obj)
-					if prop and obj[prop] ~= nil then
-						obj[prop] = color
+				local n = #objects
+				for i = 1, n do
+					local obj = objects[i]
+					local prop = cch[obj]
+					if not prop then
+						prop = ReturnProperty(obj)
+						cch[obj] = prop
 					end
+					obj[prop] = color
 				end
 			end
 		end
+		
 		if resizebtt then
 			resizebtt.BackgroundColor3 = themeData.Main
 		end
