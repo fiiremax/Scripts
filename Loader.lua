@@ -531,7 +531,7 @@ function OrionLib:MakeNotification(NotificationConfig)
 		vgs.TS:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 
 		task.wait(NotificationConfig.Time - 0.88)
-		vgs.TS:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
+		vgs.TS:Create(NotificationFrame:WaitForChild("Icon"), TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
 		vgs.TS:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
 		task.wait(0.3)
 		vgs.TS:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
@@ -1820,7 +1820,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						if SliderConfig.varFunc then
 							appblock(not SliderConfig.varFunc(SliderConfig.Block[1])[SliderConfig.Block[2]])
 						end
-						task.wait(0.1)
+						task.wait(0.05)
 					end
 				end)
 			
