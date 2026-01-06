@@ -271,33 +271,18 @@ local InfiniteSlider = Tab:AddSlider({
 ### Dynamic Blocking
 
 ```lua
--- Block based on toggle state
+-- Block based on toggle state With Table(Use Module, Same GitHub btw)
 local BlockedSlider = Tab:AddSlider({
     Name = "Conditional Slider",
     Min = 0,
     Max = 100,
     Default = 50,
-    Block = "EnableFeature", -- Name of toggle flag
+    Block = {table, value}, -- Name of toggle flag
+    VarFunc = UModule.var,
     Callback = function(Value)
         print(Value)
     end
 })
-
--- Block based on function
-local FunctionBlockSlider = Tab:AddSlider({
-    Name = "Function Blocked",
-    Min = 0,
-    Max = 100,
-    Block = function()
-        return getgenv().AllowSlider == true
-    end,
-    Callback = function(Value)
-        print(Value)
-    end
-})
-```
-
----
 
 ## Dropdown
 
