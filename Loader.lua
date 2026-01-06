@@ -49,9 +49,6 @@ function OrionLib:GenTheme(mainColor)
     return t
 end
 
-local u = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fiiremax/Scripts/refs/heads/main/Module.lua%20(Portuguese%20Comments)')))()
-local var = u.var
-
 OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(25, 25, 25))
 OrionLib.CurrentTheme = OrionLib.Themes.Default
 
@@ -1729,7 +1726,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				SliderConfig.Flag = SliderConfig.Flag or nil
 				SliderConfig.Save = SliderConfig.Save or false
 				SliderConfig.Block = SliderConfig.Block 
-				SliderConfig.varFunc =  SliderConfig.varFunc or var
+				SliderConfig.varFunc =  SliderConfig.varFunc 
 			
 				local Slider = {
 					Value = SliderConfig.Default, 
