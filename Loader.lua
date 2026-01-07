@@ -1026,6 +1026,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		WindowStuff
 	}), "Main")
     MainWindow.Active = true
+
 	resizebtt.Size = UDim2.new(0, 16, 0, 16)
 	resizebtt.Position = UDim2.new(1, -16, 1, -16)
 	resizebtt.BorderSizePixel = 0
@@ -1048,9 +1049,9 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	resizebtt.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			local currentTime = tick()
+			local cctime = tick()
 	
-			if currentTime - nresize <= 0.5 then
+			if cctime - nresize <= 0.5 then
 				local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 				local tween = vgs.TS:Create(MainWindow, tweenInfo, { Size = default})
 				tween:Play()
@@ -1060,7 +1061,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				mspos = input.Position
 			end
 	
-			nresize = currentTime
+			nresize = cctime
 		end
 	end)
 	
@@ -1082,7 +1083,50 @@ function OrionLib:MakeWindow(WindowConfig)
 			drgg = false
 		end
 	end)
-
+	
+	local lctime = 0
+	local dctime = 0.3
+	
+	AddConnection(DragPoint.InputBegan, function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local cctime2 = tick()
+			local timediff = cctime2 - lctime
+			
+			if timediff <= dctime then
+				local screenSize = workspace.CurrentCamera.ViewportSize
+				local windowSize = MainWindow.AbsoluteSize
+				
+				local xPos = (screenSize.X - windowSize.X) / 2
+				local yPos = -55
+				
+				local tposs = UDim2.new(0, xPos, 0, yPos)
+				local crposs = MainWindow.Position
+				
+				local distance = math.sqrt(
+					math.pow(crposs.X.Offset - xPos, 2) + 
+					math.pow(crposs.Y.Offset - yPos, 2)
+				)
+				
+				local mdss = math.sqrt(screenSize.X^2 + screenSize.Y^2)
+				local ndss = math.clamp(distance / mdss, 0, 1)
+				local ttime = 0.5 + (ndss * 1.5)
+				
+				local tinfo = TweenInfo.new(
+					ttime,
+					Enum.EasingStyle.Quint,
+					Enum.EasingDirection.Out
+				)
+				
+				local tween = vgs.TS:Create(MainWindow, tinfo, {Position = tposs})
+				tween:Play()
+				
+				lctime = 0
+			else
+				lctime = cctime2
+			end
+		end
+	end)
+	
 
 	if WindowConfig.ShowIcon then
 		WindowName.Position = UDim2.new(0, 50, 0, -24)
@@ -1462,19 +1506,19 @@ function OrionLib:MakeWindow(WindowConfig)
 						LabelFrame.Content.TextColor3 = Color3.fromRGB(255, 255, 255)
 					end
 					
-					local targetPosition
+					local tposs
 					if Position == "Left" then
-						targetPosition = UDim2.new(0, 12, 0, 0)
+						tposs = UDim2.new(0, 12, 0, 0)
 					elseif Position == "Center" then
-						targetPosition = UDim2.new(0.5, -LabelFrame.Content.TextBounds.X / 2, 0, 0)
+						tposs = UDim2.new(0.5, -LabelFrame.Content.TextBounds.X / 2, 0, 0)
 					elseif Position == "Right" then
-						targetPosition = UDim2.new(1, -LabelFrame.Content.TextBounds.X - 12, 0, 0)
+						tposs = UDim2.new(1, -LabelFrame.Content.TextBounds.X - 12, 0, 0)
 					else
-						targetPosition = UDim2.new(0.5, -LabelFrame.Content.TextBounds.X / 2, 0, 0)
+						tposs = UDim2.new(0.5, -LabelFrame.Content.TextBounds.X / 2, 0, 0)
 					end
 			
 					local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-					local tweenGoal = {Position = targetPosition}
+					local tweenGoal = {Position = tposs}
 					local tween = vgs.TS:Create(LabelFrame.Content, tweenInfo, tweenGoal)
 			
 					tween:Play()
@@ -1734,7 +1778,6 @@ function OrionLib:MakeWindow(WindowConfig)
 					IsClicking = false  
 				}
 				local dragging = false
-				local laststate = false
 				local infinite = (SliderConfig.Max == math.huge)
 				local infthresh = 0.95
 			
