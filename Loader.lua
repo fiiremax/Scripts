@@ -1,5 +1,6 @@
 local vgs = {
     MS  =  game:GetService("Players").LocalPlayer:GetMouse(),
+	VIM =  game:GetService("VirtualInputManager"),
     p   =  game:GetService("Players").LocalPlayer,
     UIS =  game:GetService("UserInputService"),
     TS  =  game:GetService("TweenService"),
@@ -302,28 +303,28 @@ function UnlockMouse(Value)
             vgs.UIS.MouseBehavior = Enum.MouseBehavior.Default
             vgs.UIS.MouseIconEnabled = true
             vgs.p.CameraMaxZoomDistance = zmax
-            vgs.p.CameraMinZoomDistance = zmin
+            vgs.p.CameraMaxZoomDistance = zmin
         else
             mouselock = false
             vgs.UIS.MouseIconEnabled = false
             vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+            vgs.p.CameraMaxZoomds = nz
             vgs.p.CameraMaxZoomDistance = nz
-            vgs.p.CameraMinZoomDistance = nz
             vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
 			FreeMouse.Modal = false
         end
     elseif OrionLib.UMouseMode == "FreeMouse" then
 		if Value then 
 			vgs.p.CameraMode = Enum.CameraMode.Classic
+			vgs.p.CameraMaxZoomds = nz
 			vgs.p.CameraMaxZoomDistance = nz
-			vgs.p.CameraMinZoomDistance = nz
 			vgs.UIS.MouseBehavior = Enum.MouseBehavior.Default
 			vgs.UIS.MouseIconEnabled = true
 			FreeMouse.Modal = Value
 		else
 			vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
+			vgs.p.CameraMaxZoomds = nz
 			vgs.p.CameraMaxZoomDistance = nz
-			vgs.p.CameraMinZoomDistance = nz
 			vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
 			vgs.UIS.MouseIconEnabled = false
 			FreeMouse.Modal = Value
@@ -1093,6 +1094,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			local timediff = cctime2 - lctime
 			
 			if timediff <= dctime then
+				mouse1release()
 				local screenSize = workspace.CurrentCamera.ViewportSize
 				local windowSize = MainWindow.AbsoluteSize
 				
@@ -1102,13 +1104,13 @@ function OrionLib:MakeWindow(WindowConfig)
 				local tposs = UDim2.new(0, xPos, 0, yPos)
 				local crposs = MainWindow.Position
 				
-				local distance = math.sqrt(
+				local ds = math.sqrt(
 					math.pow(crposs.X.Offset - xPos, 2) + 
 					math.pow(crposs.Y.Offset - yPos, 2)
 				)
 				
 				local mdss = math.sqrt(screenSize.X^2 + screenSize.Y^2)
-				local ndss = math.clamp(distance / mdss, 0, 1)
+				local ndss = math.clamp(ds / mdss, 0, 1)
 				local ttime = 0.5 + (ndss * 1.5)
 				
 				local tinfo = TweenInfo.new(
