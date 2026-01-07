@@ -308,7 +308,7 @@ function UnlockMouse(Value)
             mouselock = false
             vgs.UIS.MouseIconEnabled = false
             vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-            vgs.p.CameraMaxZoomds = nz
+            vgs.p.CameraMaxZoomDistance = nz
             vgs.p.CameraMaxZoomDistance = nz
             vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
 			FreeMouse.Modal = false
@@ -316,14 +316,14 @@ function UnlockMouse(Value)
     elseif OrionLib.UMouseMode == "FreeMouse" then
 		if Value then 
 			vgs.p.CameraMode = Enum.CameraMode.Classic
-			vgs.p.CameraMaxZoomds = nz
+			vgs.p.CameraMaxZoomDistance = nz
 			vgs.p.CameraMaxZoomDistance = nz
 			vgs.UIS.MouseBehavior = Enum.MouseBehavior.Default
 			vgs.UIS.MouseIconEnabled = true
 			FreeMouse.Modal = Value
 		else
 			vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
-			vgs.p.CameraMaxZoomds = nz
+			vgs.p.CameraMaxZoomDistance = nz
 			vgs.p.CameraMaxZoomDistance = nz
 			vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
 			vgs.UIS.MouseIconEnabled = false
