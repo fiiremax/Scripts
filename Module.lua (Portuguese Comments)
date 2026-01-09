@@ -17,10 +17,9 @@ local vgs = {
     Debris =     game:GetService("Debris"),
 }
 
-getgenv().var = UModule.var
-
 ----
 local gtable = getgenv()
+
 --- Ambiente controlado(Para melhor Desempenho)
 UModule.env = setmetatable({}, {
     __newindex = function(t, key, value)
@@ -29,6 +28,9 @@ UModule.env = setmetatable({}, {
         if old ~= nil then
             if type(old) == "boolean" then
                 gtable[key] = false
+                task.wait()
+                gtable[key] = nil
+                gtable[key] = value
                 return
             end
             if type(old) == "string" then
@@ -44,6 +46,8 @@ UModule.env = setmetatable({}, {
                 for k, v in pairs(old) do
                     if type(v) == "boolean" then
                         old[k] = false
+                        task.wait()
+                        old[k] = nil
                     elseif type(v) == "string" then
                         old[k] = nil
                     elseif type(v) == "userdata" or (type(v) == "table" and type(rawget(v, "Disconnect")) == "function") then
@@ -70,19 +74,24 @@ UModule.env.ov = {
     mouse = vgs.p:GetMouse(),
 }
 -- variaveis temporarias
-UModule.env.Valores = {}
-UModule.env.Toggle = {}
-UModule.env.Conns = {}
+UModule.env.Valores = UModule.env.Valores or {}
+UModule.env.Toggle = UModule.env.Toggle or {}
+UModule.env.Conns = UModule.env.Conns or {}
+UModule.env.TempV = UModule.env.TempV or {}
+UModule.env.TempL = UModule.env.TempL or {}
+UModule.env.TempT = UModule.env.TempT or {}
+UModule.env.TempC = UModule.env.TempC or {}
+UModule.env.Drops = UModule.env.Drops or {}
+UModule.env.Lists = UModule.env.Lists or {}
+UModule.env.l = UModule.env.l or {}
+UModule.env.v = UModule.env.v or {}
+UModule.env.Vars = UModule.env.Vars or {}
+UModule.env.Connections = UModule.env.Connections or {}
 
-UModule.env.TempV = {}
-UModule.env.TempL = {}
-UModule.env.TempT = {}
-UModule.env.TempC = {}
-UModule.env.Drops = {}
-UModule.env.Lists = {}
-UModule.env.l = {}
-UModule.env.v = {}
 -- renovaçao de character
+if UModule.env.Conns.CharAddCnn then
+    UModule.env.Conns.CharAddCnn = nil
+end
 UModule.env.Conns.CharAddCnn = vgs.p.CharacterAdded:Connect(function(char)
     UModule.env.ov.char = char
 end)
@@ -349,98 +358,34 @@ function UModule.FMC(arg1, arg2, arg3)
     
     return results
 end
-
-UModule.env.Vars = {}
-
-local vC = {}
 -- var() gerenciador de variaveis
 function UModule.var(a1, a2, a3)
-    if type(a1) == "table" and a2 == nil and a3 == nil then
+    if type(a1) == "table" and a2 == nil then
         for k, v in pairs(a1) do
-            UModule.env.Vars[k] = v
-            vC[k] = v
+            UModule.env[k] = v
         end
         return true
     end
     
-    if type(a1) == "string" and type(a2) == "table" and a3 == nil then
-        UModule.env.Vars[a1] = a2
-        vC[a1] = a2
-        return vC[a1]
-    end
-    
-    if a3 ~= nil then
-        if type(a1) == "table" then
-            local old = a1[a2]
-            if old ~= a3 then
-                a1[a2] = a3
-            end
-            return a1[a2]
-        end
-        return nil
-    end
-    
-    if a2 ~= nil then
-        if type(a1) ~= "string" then return nil end
-        
-        local function searchInTable(tbl, key, newValue, visited)
-            visited = visited or {}
-            if visited[tbl] then return nil end
-            visited[tbl] = true
-            
-            if tbl[key] ~= nil then
-                if newValue ~= nil then
-                    tbl[key] = newValue
-                    vC[key] = newValue
-                end
-                return tbl[key]
-            end
-            
-            for k, v in pairs(tbl) do
-                if type(v) == "table" and k ~= "Conns" and k ~= "Connections" then
-                    local result = searchInTable(v, key, newValue, visited)
-                    if result ~= nil then
-                        return result
-                    end
-                end
-            end
-            
-            return nil
-        end
-        
-        local result = searchInTable(UModule.env, a1, a2)
-        
-        if result ~= nil then
-            return result
-        end
-        
-        UModule.env.Vars[a1] = a2
-        vC[a1] = a2
-        return vC[a1]
-    end
-    
-    if a1 ~= nil then
+    if type(a1) == "string" and a2 == nil and a3 == nil then
         local vN = tostring(a1)
         
-        if vC[vN] ~= nil then
-            return vC[vN]
-        end
-        
-        local function searchInTable(tbl, key, visited)
+        function ST(tbl, key, visited)
             visited = visited or {}
             if visited[tbl] then return nil end
             visited[tbl] = true
             
-            if tbl[key] ~= nil then
-                vC[key] = tbl[key]
-                return tbl[key]
-            end
-            
-            for k, v in pairs(tbl) do
-                if type(v) == "table" and k ~= "Conns" and k ~= "Connections" then
-                    local result = searchInTable(v, key, visited)
-                    if result ~= nil then
-                        return result
+            if type(tbl) == "table" then
+                if tbl[key] ~= nil then
+                    return tbl[key]
+                end
+                
+                for k, v in pairs(tbl) do
+                    if type(v) == "table" and k ~= "Conns" and k ~= "Connections" and k ~= "ov" then
+                        local result = ST(v, key, visited)
+                        if result ~= nil then
+                            return result
+                        end
                     end
                 end
             end
@@ -448,10 +393,26 @@ function UModule.var(a1, a2, a3)
             return nil
         end
         
-        local result = searchInTable(UModule.env, vN)
-        
-        return result
+        return ST(UModule.env, vN)
     end
+    
+    if type(a1) == "string" and a2 ~= nil then
+        if a3 ~= nil then
+            if not UModule.env[a1] then
+                UModule.env[a1] = {}
+            end
+            if type(UModule.env[a1]) ~= "table" then
+                UModule.env[a1] = {}
+            end
+            UModule.env[a1][a2] = a3
+            return true
+        else
+            UModule.env[a1] = a2
+            return true
+        end
+    end
+    
+    return nil
 end
 
 getgenv().var = UModule.var
@@ -578,8 +539,6 @@ function UModule.tm.Clear(tbl)
     
     return true
 end
-
-UModule.env.Connections = {}
 -- gerenciador de conecçoes(part, conn, func, nome)// conceçoes(part, PropertyChanged, val, func, nome)
 function UModule.cm(arg1, arg2, arg3, arg4, arg5)
     if type(arg1) == "string" and arg2 == "disc" then
@@ -597,12 +556,28 @@ function UModule.cm(arg1, arg2, arg3, arg4, arg5)
     local eventType = arg2
     local callback, propName, connName
     
+    function gfuncst(func)
+        local info = debug.getinfo(func, "S")
+        if info and info.source and info.linedefined then
+            local source = info.source
+            if source:sub(1, 1) == "@" then
+                source = source:sub(2)
+            end
+            return source .. ":" .. info.linedefined .. "-" .. info.lastlinedefined
+        end
+        return tostring(func)
+    end
+    
     if type(arg2) == "function" then
         callback = arg2
         connName = arg3
         
         if not connName then
-            connName = tostring(instance) .. "_Destroying_" .. tostring(callback)
+            connName = tostring(instance) .. "_Destroying_" .. gfuncst(callback)
+        end
+        
+        if UModule.env.Connections[connName] then
+            UModule.env.Connections[connName] = nil
         end
         
         local connection = instance.Destroying:Connect(function()
@@ -614,6 +589,7 @@ function UModule.cm(arg1, arg2, arg3, arg4, arg5)
             instance = instance,
             eventType = "Destroying",
             _callback = callback,
+            _funcString = gfuncst(callback),
             Disconnect = function(self)
                 if self.connection then
                     pcall(function()
@@ -646,20 +622,19 @@ function UModule.cm(arg1, arg2, arg3, arg4, arg5)
         return
     end
     
+    local funcString = gfuncst(callback)
+    
     if not connName then
         if propName then
-            connName = tostring(instance) .. "_" .. tostring(eventType) .. "_" .. propName .. "_" .. tostring(callback)
+            connName = tostring(instance) .. "_" .. tostring(eventType) .. "_" .. propName .. "_" .. funcString
         else
-            connName = tostring(instance) .. "_" .. tostring(eventType) .. "_" .. tostring(callback)
+            connName = tostring(instance) .. "_" .. tostring(eventType) .. "_" .. funcString
         end
     end
     
     if UModule.env.Connections[connName] then
         local existingConn = UModule.env.Connections[connName]
-        if existingConn._callback == callback then
-            pcall(function()
-                existingConn.connection:Disconnect()
-            end)
+        if existingConn._funcString == funcString then
             UModule.env.Connections[connName] = nil
         else
             connName = connName .. "_" .. tick()
@@ -690,6 +665,9 @@ function UModule.cm(arg1, arg2, arg3, arg4, arg5)
             if connection then
                 connection:Disconnect()
                 connection = nil
+                if UModule.env.Connections[connName] then
+                    UModule.env.Connections[connName] = nil
+                end
             end
         end)
     end)
@@ -700,6 +678,7 @@ function UModule.cm(arg1, arg2, arg3, arg4, arg5)
         eventType = eventType,
         propName = propName,
         _callback = callback,
+        _funcString = funcString,
         Disconnect = function(self)
             if self.connection then
                 pcall(function()
