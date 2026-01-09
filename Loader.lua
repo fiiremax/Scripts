@@ -11,6 +11,9 @@ local vgs = {
 
 local GuiParent = game.CoreGui
 
+local rate = 1 / 200 
+local acc = 0
+
 local OrionLib = {
     elmnts = {},
     ThemeObjects = {},
@@ -298,37 +301,38 @@ function UnlockMouse(Value)
     if OrionLib.UMouseMode == "ThirdPerson" then
         if Value then
             mouselock = true
-			vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
+            vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
+            task.wait()
             vgs.p.CameraMode = Enum.CameraMode.Classic
             vgs.UIS.MouseBehavior = Enum.MouseBehavior.Default
             vgs.UIS.MouseIconEnabled = true
             vgs.p.CameraMaxZoomDistance = zmax
-            vgs.p.CameraMaxZoomDistance = zmin
+            vgs.p.CameraMinZoomDistance = zmin
         else
             mouselock = false
             vgs.UIS.MouseIconEnabled = false
             vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
             vgs.p.CameraMaxZoomDistance = nz
-            vgs.p.CameraMaxZoomDistance = nz
+            vgs.p.CameraMinZoomDistance = nz
             vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
-			FreeMouse.Modal = false
+            FreeMouse.Modal = false
         end
     elseif OrionLib.UMouseMode == "FreeMouse" then
-		if Value then 
-			vgs.p.CameraMode = Enum.CameraMode.Classic
-			vgs.p.CameraMaxZoomDistance = nz
-			vgs.p.CameraMaxZoomDistance = nz
-			vgs.UIS.MouseBehavior = Enum.MouseBehavior.Default
-			vgs.UIS.MouseIconEnabled = true
-			FreeMouse.Modal = Value
-		else
-			vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
-			vgs.p.CameraMaxZoomDistance = nz
-			vgs.p.CameraMaxZoomDistance = nz
-			vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-			vgs.UIS.MouseIconEnabled = false
-			FreeMouse.Modal = Value
-		end
+        if Value then 
+            vgs.p.CameraMode = Enum.CameraMode.Classic
+            vgs.p.CameraMinZoomDistance = nz
+            vgs.p.CameraMaxZoomDistance = nz
+            vgs.UIS.MouseBehavior = Enum.MouseBehavior.Default
+            vgs.UIS.MouseIconEnabled = true
+            FreeMouse.Modal = Value
+        else
+            vgs.p.CameraMode = Enum.CameraMode.LockFirstPerson
+            vgs.p.CameraMinZoomDistance = nz
+            vgs.p.CameraMaxZoomDistance = nz
+            vgs.UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+            vgs.UIS.MouseIconEnabled = false
+            FreeMouse.Modal = Value
+        end
     end
 end
 
@@ -592,34 +596,48 @@ function OrionLib:MakeWindow(WindowConfig)
 			makefolder(WindowConfig.ConfigFolder)
 		end	
 	end
-	
 	local cch = {}
 	
 	function OrionLib:SetTheme()
 		local themeData = self.Themes[self.SelectedTheme]
 		if not themeData then return end
 		
-		for typeName, objects in pairs(self.ThemeObjects) do
+		local updates = {}
+		local count = 0
+		
+		for typeName, objects in next, self.ThemeObjects do
 			local color = themeData[typeName]
 			if color then
-				local n = #objects
-				for i = 1, n do
+				local objCount = #objects
+				for i = 1, objCount do
 					local obj = objects[i]
-					local prop = cch[obj]
-					if not prop then
-						prop = ReturnProperty(obj)
-						cch[obj] = prop
+					if obj and obj.Parent then
+						local prop = cch[obj]
+						if not prop then
+							prop = ReturnProperty(obj)
+							if prop then 
+								cch[obj] = prop 
+							else 
+								continue 
+							end
+						end
+						count = count + 1
+						updates[count] = {obj, prop, color}
 					end
-					obj[prop] = color
 				end
 			end
+		end
+		
+		for i = 1, count do
+			local data = updates[i]
+			data[1][data[2]] = data[3]
 		end
 		
 		if resizebtt then
 			resizebtt.BackgroundColor3 = themeData.Main
 		end
 	end
-
+	
 	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4),
 		WindowConfig.SearchBar and {
 			Size = UDim2.new(1, 0, 1, -90),
@@ -1621,19 +1639,21 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				return ParagraphFunction
 			end
-
 			function ElementFunction:AddButton(ButtonConfig)
 				ButtonConfig = ButtonConfig or {}
 				ButtonConfig.Name = ButtonConfig.Name or "Button"
 				ButtonConfig.Callback = ButtonConfig.Callback or function() end
 				ButtonConfig.Icon = ButtonConfig.Icon or "rbxassetid://3944703587"
-
+			
 				local Button = {}
-
+				local Ihov = false
+				local Ip = false
+				local PIns = false  
+			
 				local Click = SetProps(MakeElement("Button"), {
 					Size = UDim2.new(1, 0, 1, 0)
 				})
-
+			
 				local ButtonFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 33),
 					Parent = ItemParent
@@ -1651,32 +1671,61 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddThemeObject(MakeElement("Stroke"), "Stroke"),
 					Click
 				}), "Second")
+				
 				Relem(ItemParent.Name, ButtonConfig.Name, ButtonFrame)
+				
+				local function UpdateColor()
+					local baseColor = OrionLib.Themes[OrionLib.SelectedTheme].Second
+					local offset = Ip and 6 or (Ihov and 3 or 0)
+					
+					if offset > 0 then
+						ButtonFrame.BackgroundColor3 = Color3.fromRGB(
+							math.min(baseColor.R * 255 + offset, 255),
+							math.min(baseColor.G * 255 + offset, 255),
+							math.min(baseColor.B * 255 + offset, 255)
+						)
+					else
+						ButtonFrame.BackgroundColor3 = baseColor
+					end
+				end
+				
 				AddConnection(Click.MouseEnter, function()
-					vgs.TS:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+					Ihov = true
+					UpdateColor()
 				end)
-
+			
 				AddConnection(Click.MouseLeave, function()
-					vgs.TS:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+					Ihov = false
+					Ip = false
+					PIns = false  
+					ButtonFrame.BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second
 				end)
-
-				AddConnection(Click.MouseButton1Up, function()
-					vgs.TS:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-					spawn(function()
-						ButtonConfig.Callback()
-					end)
-				end)
-
+			
 				AddConnection(Click.MouseButton1Down, function()
-					vgs.TS:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+					Ip = true
+					PIns = true 
+					UpdateColor()
 				end)
-
+			
+				AddConnection(Click.MouseButton1Up, function()
+					Ip = false
+					UpdateColor()
+					
+					if PIns then
+						spawn(function()
+							ButtonConfig.Callback()
+						end)
+					end
+					
+					PIns = false  
+				end)
+			
 				function Button:Set(ButtonText)
 					ButtonFrame.Content.Text = ButtonText
 				end	
-
+			
 				return Button
-			end    
+			end
 			function ElementFunction:AddToggle(ToggleConfig)
 				ToggleConfig = ToggleConfig or {}
 				ToggleConfig.Name = ToggleConfig.Name or "Toggle"
@@ -2840,7 +2889,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				local ColorSelection = Create("ImageLabel", {
 					Size = UDim2.new(0, 18, 0, 18),
 					Position = UDim2.new(ColorS, 0, 1 - ColorV),
-					ScaleType = Enum.ScaleType.Fit,
+					ScaleType = Enum.ScaleType.Stretch,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundTransparency = 1,
 					Image = "http://www.roblox.com/asset/?id=4805639000"
@@ -2848,16 +2897,18 @@ function OrionLib:MakeWindow(WindowConfig)
 				local HueSelection = Create("ImageLabel", {
 					Size = UDim2.new(0, 18, 0, 18),
 					Position = UDim2.new(0.5, 0, 1 - ColorH),
-					ScaleType = Enum.ScaleType.Fit,
+					ScaleType = Enum.ScaleType.Stretch,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundTransparency = 1,
 					Image = "http://www.roblox.com/asset/?id=4805639000"
 				})
-			
+				
 				local Color = Create("ImageLabel", {
 					Size = UDim2.new(1, -25, 1, 0),
 					Visible = false,
-					Image = "rbxassetid://4155801252"
+					Image = "rbxassetid://4155801252",
+					ScaleType = Enum.ScaleType.Stretch,
+					BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 				}, {Create("UICorner", {CornerRadius = UDim.new(0, 5)}), ColorSelection})
 			
 				local Hue = Create("Frame", {
@@ -2947,8 +2998,8 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				local function UpdateColorPicker()
 					ColorpickerBox.BackgroundColor3 = Color3.fromHSV(ColorH, ColorS, ColorV)
-					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
-					Colorpicker.Value = ColorpickerBox.BackgroundColor3
+					Color.BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second
+					Colorpicker.Value = ColorpickerBox.BackgroundColor3 -- Color3.fromHSV(ColorH, 1, 1)
 					ColorpickerConfig.Callback(Colorpicker.Value)
 					if ColorpickerConfig.Save then SaveCfg(game.GameId) end
 				end
@@ -2956,11 +3007,18 @@ function OrionLib:MakeWindow(WindowConfig)
 				AddConnection(Color.InputBegan, function(input)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						if ColorInput then ColorInput:Disconnect() end
-						ColorInput = AddConnection(vgs.RS.RenderStepped, function()
+						ColorInput = AddConnection(vgs.RS.Heartbeat, function(dt)
+							acc += dt
+							if acc < rate then
+								return
+							end
+							acc -= rate
+						
 							local ax, ay = Color.AbsolutePosition.X, Color.AbsolutePosition.Y
 							local aw, ah = Color.AbsoluteSize.X, Color.AbsoluteSize.Y
 							local x = math.clamp(vgs.MS.X - ax, 0, aw) / aw
 							local y = math.clamp(vgs.MS.Y - ay, 0, ah) / ah
+						
 							ColorSelection.Position = UDim2.new(x, 0, y, 0)
 							ColorS, ColorV = x, 1 - y
 							UpdateColorPicker()
@@ -2978,7 +3036,12 @@ function OrionLib:MakeWindow(WindowConfig)
 				AddConnection(Hue.InputBegan, function(input)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						if HueInput then HueInput:Disconnect() end
-						HueInput = AddConnection(vgs.RS.RenderStepped, function()
+						HueInput = AddConnection(vgs.RS.Heartbeat, function(dt)
+							acc += dt
+							if acc < rate then
+								return
+							end
+							acc -= rate
 							local ay, ah = Hue.AbsolutePosition.Y, Hue.AbsoluteSize.Y
 							local y = math.clamp(vgs.MS.Y - ay, 0, ah) / ah
 							HueSelection.Position = UDim2.new(0.5, 0, y, 0)
@@ -2999,7 +3062,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Colorpicker.Value = Value
 					ColorH, ColorS, ColorV = Color3.toHSV(Value)
 					ColorpickerBox.BackgroundColor3 = Value
-					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
+					Color.BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second --Color3.fromHSV(ColorH, 1, 1)
 					ColorSelection.Position = UDim2.new(ColorS, 0, 1 - ColorV)
 					HueSelection.Position = UDim2.new(0.5, 0, 1 - ColorH)
 					ColorpickerConfig.Callback(Value)
