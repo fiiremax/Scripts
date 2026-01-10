@@ -6,12 +6,13 @@ local vgs = {
     TS  =  game:GetService("TweenService"),
     HS  =  game:GetService("HttpService"),
     RS  =  game:GetService("RunService"),
-    ps  =  game:GetService("Players")
+    ps  =  game:GetService("Players"),
+	loopvar = true
 }
 
 local GuiParent = game.CoreGui
 
-local rate = 1 / 200 
+local rate = 1 / 70
 local acc = 0
 
 local OrionLib = {
@@ -23,7 +24,12 @@ local OrionLib = {
     SelectedTheme = "Default",
     UMouseMode = "ThirdPerson",
     Folder = nil,
-    SaveCfg = false
+    SaveCfg = false,
+    
+    _propCache = {},    
+    _updsch = false,
+    _lthup = 0,
+    _tmdbc = 0.016 
 }
 
 function OrionLib:GenTheme(mainColor)
@@ -167,7 +173,6 @@ function AddItemTable(Table, Item, Value)
 	Table[Item] = Value
 end
 
-
 function MakeElement(ElementName, ...)
 	local NewElement = OrionLib.elmnts[ElementName](...)
 	return NewElement
@@ -200,43 +205,51 @@ function Round(Number, Factor)
     return Result
 end
 
-function ReturnProperty(Object)
-    if Object:IsA("TextLabel") or Object:IsA("TextBox") then
-        return "TextColor3"
-    end 
-    if Object:IsA("ScrollingFrame") then
-        return "ScrollBarImageColor3"
-    end 
-    if Object:IsA("UIStroke") then
-        return "Color"
-    end   
-    if Object:IsA("ImageLabel") or Object:IsA("ImageButton") then
-        return "ImageColor3"
-    end
-    if Object:IsA("Frame") or Object:IsA("TextButton") then
-        return "BackgroundColor3"
-    end 
+function ReturnProperty(obj)
+    local cached = OrionLib._propCache[obj]
+    if cached then return cached end
     
-    return nil
+    local class = obj.ClassName
+    local prop
+    
+    if class == "TextLabel" or class == "TextBox" then
+        prop = "TextColor3"
+    elseif class == "Frame" or class == "TextButton" then
+        prop = "BackgroundColor3"
+    elseif class == "ImageLabel" or class == "ImageButton" then
+        prop = "ImageColor3"
+    elseif class == "UIStroke" then
+        prop = "Color"
+    elseif class == "ScrollingFrame" then
+        prop = "ScrollBarImageColor3"
+    end
+    
+    if prop then
+        OrionLib._propCache[obj] = prop
+    end
+    
+    return prop
 end
 
-function AddThemeObject(Object, Type)
-    if not OrionLib.ThemeObjects[Type] then
-        OrionLib.ThemeObjects[Type] = {}
-    end    
+function AddThemeObject(obj, themeType)
+    if not obj or not themeType then return obj end
+    local arr = OrionLib.ThemeObjects[themeType]
+    if not arr then
+        arr = {}
+        OrionLib.ThemeObjects[themeType] = arr
+    end
+    arr[#arr + 1] = obj
     
-    Total.AddThemeObject = Total.AddThemeObject + 1
-    table.insert(OrionLib.ThemeObjects[Type], Object)
-    
-    local themeColor = OrionLib.Themes[OrionLib.SelectedTheme][Type]
-    local property = ReturnProperty(Object)
-    
-    if themeColor and property and Object[property] ~= nil then
-        Object[property] = themeColor
+    local prop = ReturnProperty(obj)
+    if prop then
+        local color = OrionLib.Themes[OrionLib.SelectedTheme][themeType]
+        if color then
+            pcall(function() obj[prop] = color end)
+        end
     end
     
-    return Object
-end  
+    return obj
+end
 
 local resizebtt = Instance.new("Frame")
 
@@ -598,46 +611,6 @@ function OrionLib:MakeWindow(WindowConfig)
 	end
 	local cch = {}
 	
-	function OrionLib:SetTheme()
-		local themeData = self.Themes[self.SelectedTheme]
-		if not themeData then return end
-		
-		local updates = {}
-		local count = 0
-		
-		for typeName, objects in next, self.ThemeObjects do
-			local color = themeData[typeName]
-			if color then
-				local objCount = #objects
-				for i = 1, objCount do
-					local obj = objects[i]
-					if obj and obj.Parent then
-						local prop = cch[obj]
-						if not prop then
-							prop = ReturnProperty(obj)
-							if prop then 
-								cch[obj] = prop 
-							else 
-								continue 
-							end
-						end
-						count = count + 1
-						updates[count] = {obj, prop, color}
-					end
-				end
-			end
-		end
-		
-		for i = 1, count do
-			local data = updates[i]
-			data[1][data[2]] = data[3]
-		end
-		
-		if resizebtt then
-			resizebtt.BackgroundColor3 = themeData.Main
-		end
-	end
-	
 	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4),
 		WindowConfig.SearchBar and {
 			Size = UDim2.new(1, 0, 1, -90),
@@ -964,7 +937,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		
 		local tbxatual = AddThemeObject(SearchBox, "Text")
 	
-		local SearchBar = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0.1, 6), {
+		local SearchBar = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0.1, 5), {
 			Parent = WindowStuff,
 			Size = UDim2.new(0, 130, 0, 32),
 			Position = UDim2.new(1, -10, 0, 10),
@@ -1045,6 +1018,96 @@ function OrionLib:MakeWindow(WindowConfig)
 		WindowStuff
 	}), "Main")
     MainWindow.Active = true
+	function OrionLib:SetTheme()
+		local now = tick()
+		if now - self._lthup < self._tmdbc then
+			if not self._updsch then
+				self._updsch = true
+				task.defer(function()
+					task.wait(self._tmdbc)
+					self:_ApplyTheme()
+					self._updsch = false
+				end)
+			end
+			return
+		end
+		
+		self._lthup = now
+		self:_ApplyTheme()
+	end
+	
+	function OrionLib:_ApplyTheme()
+		local theme = self.Themes[self.SelectedTheme]
+		if not theme then return end
+		
+		local upcont = 0
+		local bchsze = 100 
+		
+		for themeType, objects in next, self.ThemeObjects do
+			local color = theme[themeType]
+			if color then
+				local objCount = #objects
+				for i = 1, objCount do
+					local obj = objects[i]
+					
+					if obj and obj.Parent then
+						local prop = self._propCache[obj]
+						if prop then
+							local ok = pcall(function()
+								obj[prop] = color
+							end)
+							
+							if not ok then
+								self._propCache[obj] = nil
+							end
+						end
+					else
+						objects[i] = false
+					end
+					
+					upcont = upcont + 1
+					
+					if upcont % bchsze == 0 then
+						task.wait()
+					end
+				end
+			end
+		end
+		if resizebtt then
+			pcall(function()
+				resizebtt.BackgroundColor3 = theme.Main
+			end)
+		end
+	end
+	
+	function OrionLib:_CleanupTheme()
+		for themeType, objects in next, self.ThemeObjects do
+			local cnled = {}
+			local cnledCount = 0
+			
+			for i = 1, #objects do
+				local obj = objects[i]
+				if obj and obj.Parent then
+					cnledCount = cnledCount + 1
+					cnled[cnledCount] = obj
+				else
+					if obj then
+						self._propCache[obj] = nil
+					end
+				end
+			end
+			
+			self.ThemeObjects[themeType] = cnled
+		end
+	end
+	
+	task.spawn(function()
+		while task.wait(30) and vgs.loopvar do
+			if OrionLib:IsRunning() then
+				OrionLib:_CleanupTheme()
+			end
+		end
+	end)
 
 	resizebtt.Size = UDim2.new(0, 16, 0, 16)
 	resizebtt.Position = UDim2.new(1, -16, 1, -16)
@@ -2716,7 +2779,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 				Relem(ItemParent.Name, BindConfig.Name, BindFrame)
 				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
-					vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)}):Play()
+					vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 18, 0, 24)}):Play()
 				end)
 
 				AddConnection(Click.InputEnded, function(Input)
@@ -3212,6 +3275,7 @@ function OrionLib:MakeWindow(WindowConfig)
 end   
 
 function OrionLib:Destroy()
+	vgs.loopvar = false
 	UnlockMouse(false)
 	Orion:Destroy()
 end
