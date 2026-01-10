@@ -3072,10 +3072,32 @@ function OrionLib:MakeWindow(WindowConfig)
 				if ColorpickerConfig.Flag then OrionLib.Flags[ColorpickerConfig.Flag] = Colorpicker end
 				return Colorpicker
 			end
-			function ElementFunction:AddSmartTheme()
-				local GeneratorSection = self
+			function ElementFunction:AddUiBind()
+				local UiBind = self:AddBind({
+					Name = "Orion Bind",
+					Default = WindowConfig.Openkey,
+					Hold = false,
+					Callback = function(Input)
+					end
+				})
 				
-				GeneratorSection:AddColorpicker({
+				local oset = UiBind.Set
+				function UiBind:Set(Key)
+					local wbinding = self.Binding
+					oset(self, Key)
+					
+					if wbinding and not self.Binding and self.Value ~= "Unknown" then
+						task.wait(0.1)
+						WindowConfig.Openkey = self.Value
+					end
+				end
+				
+				return UiBind
+			end
+			function ElementFunction:AddSmartTheme()
+				local gersec = self
+				
+				gersec:AddColorpicker({
 					Name = "Base Color",
 					Default = OrionLib.Themes[OrionLib.SelectedTheme].Main,
 					Callback = function(Value)
@@ -3086,7 +3108,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				})
 				
-				GeneratorSection:AddButton({
+				gersec:AddButton({
 					Name = "Reset Theme",
 					Callback = function()
 						OrionLib.Themes.Custom = OrionLib:GenTheme(Color3.fromRGB(25, 25, 25))
