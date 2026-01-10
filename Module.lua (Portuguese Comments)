@@ -28,7 +28,6 @@ UModule.env = setmetatable({}, {
         if old ~= nil then
             if type(old) == "boolean" then
                 gtable[key] = false
-                task.wait()
                 gtable[key] = nil
                 gtable[key] = value
                 return
@@ -46,7 +45,6 @@ UModule.env = setmetatable({}, {
                 for k, v in pairs(old) do
                     if type(v) == "boolean" then
                         old[k] = false
-                        task.wait()
                         old[k] = nil
                     elseif type(v) == "string" then
                         old[k] = nil
