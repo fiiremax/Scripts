@@ -2854,7 +2854,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 				Relem(ItemParent.Name, BindConfig.Name, BindFrame)
 				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
-					vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 18, 0, 24)}):Play()
+					vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 19, 0, 24)}):Play()
 				end)
 
 				AddConnection(Click.InputEnded, function(Input)
