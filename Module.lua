@@ -277,16 +277,19 @@ function UModule.SICF(...)
     task.spawn(function()
         local item, cf, mode
         
-        for _, arg in ipairs(args) do
-            local t = type(arg)
-            if t == "string" then
-                if not item then
-                    item = arg
-                else
-                    mode = arg
+        for i = 1, #args do
+            local arg = args[i]
+            if arg ~= nil then
+                local t = type(arg)
+                if t == "string" then
+                    if not item then
+                        item = arg
+                    else
+                        mode = arg
+                    end
+                elseif typeof(arg) == "CFrame" then
+                    cf = arg
                 end
-            elseif typeof(arg) == "CFrame" then
-                cf = arg
             end
         end
         
@@ -296,11 +299,11 @@ function UModule.SICF(...)
         local rotation = Vector3.new(0, 0, 0)
 
         if mode == "Default" then
-            cf = hrp.CFrame * CFrame.new(5, 8, 25)
+            cf = hrp.CFrame * CFrame.new(0, 0, 0)
         elseif mode == "Head" then
-            cf = hrp.CFrame * CFrame.new(0, 10, 20)
+            cf = CFrame.new(hrp.Position + Vector3.new(0, 13, 20))
         elseif mode == "Front" then
-            cf = hrp.CFrame * CFrame.new(0, 0, -5)
+            cf = hrp.CFrame * CFrame.new(0, 0, 15)
         end
         
         cf = cf or hrp.CFrame
