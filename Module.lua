@@ -579,6 +579,8 @@ function UModule.cm(...)
             end
         elseif t == "number" then
             ttle = arg
+        elseif t == "table" then
+            ttle = arg
         end
     end
     
@@ -656,7 +658,13 @@ function UModule.cm(...)
     local function rcbs(...)
         if ttle then
             counter = counter + 1
-            if counter < ttle then
+            local tthVal
+            if type(ttle) == "table" then
+                tthVal = ttle.ref and ttle.ref[ttle.key] or ttle
+            else
+                tthVal = ttle
+            end
+            if counter < tthVal then
                 return
             end
             counter = 0
