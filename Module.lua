@@ -153,26 +153,13 @@ function UModule.GPNames(mode, arg)
     return pnames
 end
 
-function UModule.SPE(...)
-    local args = {...}
-    local pt, loc, cf, ang
-    
-    for _, arg in ipairs(args) do
-        if typeof(arg) == "Instance" and arg:IsA("BasePart") then
-            if not pt then
-                pt = arg
-            else
-                loc = arg
-            end
-        elseif typeof(arg) == "CFrame" then
-            cf = arg
-        end
-    end
-    
-    ang = ang or CFrame.Angles(0, 0, 0)
-    
+function UModule.SPE(pt, loc, cf, ang)
     if pt and loc and cf then
-        vgs.RS.PlayerEvents.StickyPartEvent:FireServer(pt, loc, cf * ang)
+        vgs.RS.PlayerEvents.StickyPartEvent:FireServer(
+            pt, 
+            loc, 
+            cf * ang or CFrame.Angles(0, 0, 0)
+        )
     end
 end
 
