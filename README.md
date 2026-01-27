@@ -124,6 +124,23 @@ ColorLabel:Set("New Text", Color3.fromRGB(0, 255, 0), "Right")
 ```
 
 ---
+## AddPBind
+
+Creates a Tiny TextBox X Y Z to change Positions.
+
+```lua
+tonumber -- for all types of numbers (if not valid number or letters it will be nil.)
+KeyTab:AddPbind({
+    Name = "Position",
+    DefaultX = "1",
+    DefaultY = "2",
+    DefaultZ = "3",
+    Callback = function(x, y, z)
+        print(tonumber(x), tonumber(y), tonumber(z))
+    end
+})
+
+```
 
 ## Paragraph
 
