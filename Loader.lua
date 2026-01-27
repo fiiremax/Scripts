@@ -1726,6 +1726,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				return Button
 			end
+
 			function ElementFunction:AddToggle(ToggleConfig)
 				ToggleConfig = ToggleConfig or {}
 				ToggleConfig.Name = ToggleConfig.Name or "Toggle"
@@ -1807,6 +1808,127 @@ function OrionLib:MakeWindow(WindowConfig)
 					OrionLib.Flags[ToggleConfig.Flag] = Toggle
 				end	
 				return Toggle
+			end
+			
+			function ElementFunction:AddPbind(PBindConfig)
+				PBindConfig.Name = PBindConfig.Name or "Position"
+				PBindConfig.DefaultX = PBindConfig.DefaultX or ""
+				PBindConfig.DefaultY = PBindConfig.DefaultY or ""
+				PBindConfig.DefaultZ = PBindConfig.DefaultZ or ""
+				PBindConfig.Callback = PBindConfig.Callback or function() end
+				PBindConfig.Flag = PBindConfig.Flag or nil
+				PBindConfig.Save = PBindConfig.Save or false
+			
+				local PBind = {
+					ValueX = PBindConfig.DefaultX,
+					ValueY = PBindConfig.DefaultY,
+					ValueZ = PBindConfig.DefaultZ,
+					Type = "PBind",
+					Save = PBindConfig.Save
+				}
+			
+				local function CreateTB(xPos, lbl, defVal)
+					local tb = AddThemeObject(Create("TextBox", {
+						Size = UDim2.new(1, 0, 1, 0),
+						BackgroundTransparency = 1,
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
+						PlaceholderText = "...",
+						Font = Enum.Font.GothamBold,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextSize = 13,
+						Text = defVal,
+						ClearTextOnFocus = true
+					}), "Text")
+			
+					local lblTxt = AddThemeObject(SetProps(MakeElement("Label", lbl .. ":", 15), {
+						Size = UDim2.new(0, 20, 1, 0),
+						Position = UDim2.new(1, xPos - 30, 0, 0),
+						AnchorPoint = Vector2.new(1, 0),
+						Font = Enum.Font.GothamBold,
+						TextXAlignment = Enum.TextXAlignment.Right,
+						Name = "OuterLabel"
+					}), "Text")
+			
+					local cont = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+						Size = UDim2.new(0, 24, 0, 24),
+						Position = UDim2.new(1, xPos, 0.5, 0),
+						AnchorPoint = Vector2.new(1, 0.5)
+					}), {
+						AddThemeObject(MakeElement("Stroke"), "Stroke"),
+						tb
+					}), "Main")
+			
+					AddConnection(tb:GetPropertyChangedSignal("Text"), function()
+						if #tb.Text > 5 then
+							tb.Text = string.sub(tb.Text, 1, 5)
+						end
+						
+						local w = math.clamp(tb.TextBounds.X + 19, 24, 80)
+						
+						vgs.TS:Create(cont, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+							Size = UDim2.new(0, w, 0, 24)
+						}):Play()
+						
+						vgs.TS:Create(lblTxt, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+							Position = UDim2.new(1, xPos - w - 6, 0, 0)
+						}):Play()
+					end)
+			
+					return cont, tb, lblTxt
+				end
+			
+				local BX, TBX, LX = CreateTB(-158, "X", PBindConfig.DefaultX)
+				local BY, TBY, LY = CreateTB(-85, "Y", PBindConfig.DefaultY)
+				local BZ, TBZ, LZ = CreateTB(-12, "Z", PBindConfig.DefaultZ)
+			
+				local PBF = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", PBindConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					LX, BX, LY, BY, LZ, BZ
+				}), "Second")
+			
+				Relem(ItemParent.Name, PBindConfig.Name, PBF)
+			
+				local function UpdCb()
+					PBind.ValueX = TBX.Text
+					PBind.ValueY = TBY.Text
+					PBind.ValueZ = TBZ.Text
+					PBindConfig.Callback(PBind.ValueX, PBind.ValueY, PBind.ValueZ)
+				end
+			
+				AddConnection(TBX.FocusLost, UpdCb)
+				AddConnection(TBY.FocusLost, UpdCb)
+				AddConnection(TBZ.FocusLost, UpdCb)
+			
+				function PBind:Set(x, y, z)
+					if x then
+						PBind.ValueX = tostring(x)
+						TBX.Text = string.sub(PBind.ValueX, 1, 5)
+					end
+					if y then
+						PBind.ValueY = tostring(y)
+						TBY.Text = string.sub(PBind.ValueY, 1, 5)
+					end
+					if z then
+						PBind.ValueZ = tostring(z)
+						TBZ.Text = string.sub(PBind.ValueZ, 1, 5)
+					end
+				end
+			
+				if PBindConfig.Flag then
+					OrionLib.Flags[PBindConfig.Flag] = PBind
+				end
+			
+				return PBind
 			end
 			
 			function ElementFunction:AddSlider(SliderConfig)
