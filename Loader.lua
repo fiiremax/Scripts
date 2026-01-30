@@ -1208,7 +1208,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			reztween = nil
 		end
 		
-		local newWidth = WindowName.TextBounds.X + 140
+		local newWidth = WindowName.TextBounds.X + 150
 		if MainWindow.Size.X.Offset == newWidth then return end
 		
 		reztween = vgs.TS:Create(MainWindow, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
@@ -1235,28 +1235,29 @@ function OrionLib:MakeWindow(WindowConfig)
 		if minimized then
 			MainWindow.ClipsDescendants = true
 			WindowTopBarLine.Visible = false
+			WindowStuff.Visible = false
 			MinimizeBtn.Ico.Image = "rbxassetid://7072720870"
 			
 			mintween = vgs.TS:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-				Size = UDim2.new(0, WindowName.TextBounds.X + 140, 0, 50)
+				Size = UDim2.new(0, WindowName.TextBounds.X + 150, 0, 50)
 			})
-			WindowStuff.Visible = false
 			mintween:Play()
 			mintween.Completed:Wait()
 		else
-			WindowStuff.Visible = true
 			MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
 			
 			mintween = vgs.TS:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 				Size = UDim2.new(0, 615, 0, 344)
 			})
 			mintween:Play()
+			task.spawn(function()
+				task.wait(0.05)
+				MainWindow.ClipsDescendants = false
+			    WindowStuff.Visible = true
+			end)
 			mintween.Completed:Wait()
-			WindowStuff.Visible = true
-			MainWindow.ClipsDescendants = false
 		end
 	end)
-
 
 	local function LoadSequence()
 		MainWindow.Visible = false
