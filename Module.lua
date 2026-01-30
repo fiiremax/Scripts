@@ -440,6 +440,35 @@ function UModule.var(a1, a2, a3)
     end
     
     if type(a1) == "string" and a2 ~= nil then
+        if a2 == "ref" then
+            if not UModule.env[a1] then 
+                UModule.env[a1] = {}
+            end
+            if type(UModule.env[a1]) == "table" then
+                return UModule.env[a1]
+            end
+            return nil
+        end
+        
+        if a2 == "get" then
+            if UModule.env[a1] and type(UModule.env[a1]) == "table" and a3 then
+                return UModule.env[a1][a3]
+            end
+            return UModule.env[a1]
+        end
+        
+        if a2 == "merge" and type(a3) == "table" then
+            if not UModule.env[a1] then 
+                UModule.env[a1] = {} 
+            end
+            if type(UModule.env[a1]) == "table" then
+                for k, v in pairs(a3) do
+                    UModule.env[a1][k] = v
+                end
+            end
+            return true
+        end
+        
         if a3 ~= nil then
             if not UModule.env[a1] then UModule.env[a1] = {} end
             if type(UModule.env[a1]) ~= "table" then UModule.env[a1] = {} end
@@ -527,20 +556,90 @@ function UModule.tm.Clear(tbl)
     return true
 end
 
+function UModule.wfc(...)
+    local args = {...}
+    local name, parent, timeout
+    
+    for _, arg in ipairs(args) do
+        local t = type(arg)
+        if t == "string" then
+            name = arg
+        elseif t == "number" then
+            timeout = arg
+        elseif typeof(arg) == "Instance" then
+            parent = arg
+        end
+    end
+    
+    if not name then return nil end
+    
+    parent = parent or UModule.env.ov.char
+    
+    if not timeout then
+        local child
+        repeat
+            child = parent:FindFirstChild(name)
+            if child then return child end
+            task.wait()
+        until child
+        return child
+    end
+    
+    local startTime = tick()
+    local child
+    
+    repeat
+        child = parent:FindFirstChild(name)
+        if child then return child end
+        task.wait()
+    until (tick() - startTime) >= timeout
+    
+    return nil
+end
+
 function UModule.cm(...)
     local args = {...}
     
-    if #args == 2 and type(args[1]) == "string" and args[2] == "disc" then
-        if UModule.env.Connections[args[1]] then
-            pcall(function()
-                UModule.env.Connections[args[1]]:Disconnect()
-            end)
-            UModule.env.Connections[args[1]] = nil
+    if #args == 2 and type(args[1]) == "string" then
+        local cmd = args[2]
+        local name = args[1]
+        
+        if cmd == "disc" or cmd == "disconnect" then
+            if UModule.env.Connections[name] then
+                pcall(function()
+                    UModule.env.Connections[name]:Disconnect()
+                end)
+                UModule.env.Connections[name] = nil
+            end
+            return
         end
-        return
+        
+        if cmd == "pause" then
+            if UModule.env.Connections[name] then
+                UModule.env.Connections[name]._paused = true
+            end
+            return
+        end
+        
+        if cmd == "resume" then
+            if UModule.env.Connections[name] then
+                UModule.env.Connections[name]._paused = false
+            end
+            return
+        end
+        
+        if cmd == "status" then
+            if not UModule.env.Connections[name] then
+                return "none"
+            end
+            if UModule.env.Connections[name]._paused then
+                return "paused"
+            end
+            return "active"
+        end
     end
     
-    local inst, cback, name, stgs, ttle = nil, nil, nil, {}, nil
+    local inst, cback, name, stgs, ttle, once = nil, nil, nil, {}, nil, false
     local madd = false
     
     local function gfstr(func)
@@ -561,6 +660,8 @@ function UModule.cm(...)
         elseif t == "string" then
             if arg == "Add" then
                 madd = true
+            elseif arg == "once" or arg == "Once" then
+                once = true
             else
                 table.insert(stgs, arg)
             end
@@ -581,7 +682,7 @@ function UModule.cm(...)
             return
         end
         
-        table.insert(UModule.env.Connections[cname]._cbacks, cback)
+        table.insert(UModule.env.Connections[cname]._cbacks, {func = cback, once = once})
         return UModule.env.Connections[cname]
     end
     
@@ -603,8 +704,9 @@ function UModule.cm(...)
             connection = conn,
             inst = inst,
             eventType = "Destroying",
-            _cbacks = {cback},
+            _cbacks = {{func = cback, once = once}},
             _funcString = gfstr(cback),
+            _paused = false,
             Disconnect = function(self)
                 if self.connection then
                     pcall(function() self.connection:Disconnect() end)
@@ -643,6 +745,13 @@ function UModule.cm(...)
     local counter = 0
     
     local function rcbs(...)
+        local connData = UModule.env.Connections[name]
+        if not connData then return end
+        
+        if connData._paused then
+            return
+        end
+        
         if ttle then
             counter = counter + 1
             local tthVal
@@ -657,8 +766,37 @@ function UModule.cm(...)
             counter = 0
         end
         
-        for _, cb in ipairs(UModule.env.Connections[name]._cbacks) do
-            task.spawn(cb, ...)
+        local callbacksCopy = {}
+        for i, cbEntry in ipairs(connData._cbacks) do
+            table.insert(callbacksCopy, {index = i, entry = cbEntry})
+        end
+        
+        local toRemove = {}
+        for _, cbData in ipairs(callbacksCopy) do
+            local success = pcall(function()
+                cbData.entry.func(...)
+            end)
+            
+            if cbData.entry.once then
+                table.insert(toRemove, cbData.index)
+            end
+        end
+        
+        for i = #toRemove, 1, -1 do
+            local idx = toRemove[i]
+            if connData._cbacks[idx] then
+                table.remove(connData._cbacks, idx)
+            end
+        end
+        
+        if once then
+            task.defer(function()
+                if UModule.env.Connections[name] then
+                    pcall(function()
+                        UModule.env.Connections[name]:Disconnect()
+                    end)
+                end
+            end)
         end
     end
     
@@ -693,8 +831,9 @@ function UModule.cm(...)
         inst = inst,
         eventType = event,
         propName = prop,
-        _cbacks = {cback},
+        _cbacks = {{func = cback, once = once}},
         _funcString = fstr,
+        _paused = false,
         ttle = ttle,
         Disconnect = function(self)
             if self.connection then
