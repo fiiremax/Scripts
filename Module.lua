@@ -766,6 +766,8 @@ function UModule.cm(...)
             counter = 0
         end
         
+        local args = {...}
+        
         local callbacksCopy = {}
         for i, cbEntry in ipairs(connData._cbacks) do
             table.insert(callbacksCopy, {index = i, entry = cbEntry})
@@ -774,7 +776,7 @@ function UModule.cm(...)
         local toRemove = {}
         for _, cbData in ipairs(callbacksCopy) do
             local success = pcall(function()
-                cbData.entry.func(...)
+                cbData.entry.func(unpack(args))
             end)
             
             if cbData.entry.once then
