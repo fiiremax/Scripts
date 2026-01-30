@@ -53,7 +53,7 @@ function OrionLib:GenTheme(mainColor)
     return t
 end
 
-OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(25, 25, 25))
+OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(40, 29, 47))
 OrionLib.CurrentTheme = OrionLib.Themes.Default
 
 local Orion = Instance.new("ScreenGui")
@@ -77,7 +77,6 @@ function OrionLib:DestroyLib()
     end
     table.clear(OrionLib.Connections)
     
-    UnlockMouse(false)
     Orion:Destroy()
 end
 
@@ -572,6 +571,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	WindowConfig.Name = WindowConfig.Name
 	WindowConfig.ConfigFolder = WindowConfig.ConfigFolder or WindowConfig.Name
 	WindowConfig.SaveConfig = WindowConfig.SaveConfig or false
+	WindowConfig.TagText = WindowConfig.TagText or ""
 	WindowConfig.HidePremium = WindowConfig.HidePremium or false
 	if WindowConfig.IntroEnabled == nil then
 		WindowConfig.IntroEnabled = true
@@ -733,11 +733,11 @@ function OrionLib:MakeWindow(WindowConfig)
                 Font = Enum.Font.GothamBold,
                 ClipsDescendants = true
             }), "Text"),
-            AddThemeObject(SetProps(MakeElement("Label", "", 12), {
-                Size = UDim2.new(1, -60, 0, 12),
-                Position = UDim2.new(0, 50, 1, -25),
-                Visible = not WindowConfig.HidePremium
-            }), "TextDark")
+			AddThemeObject(SetProps(MakeElement("Label", WindowConfig.TagText, 12), {
+				Size = UDim2.new(1, -60, 0, 12),
+				Position = UDim2.new(0, 50, 1, -25),
+				Visible = not WindowConfig.HidePremium
+			}), "TextDark")
         }),
     }), "Second")
     
@@ -1151,8 +1151,8 @@ function OrionLib:MakeWindow(WindowConfig)
 	if WindowConfig.ShowIcon then
 		WindowName.Position = UDim2.new(0, 50, 0, -24)
 		local WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
-			Size = UDim2.new(0, 20, 0, 20),
-			Position = UDim2.new(0, 25, 0, 15)
+			Size = UDim2.new(0, 50, 0, 50),
+			Position = UDim2.new(0, 0, 0, 0)
 		})
 		WindowIcon.Parent = MainWindow.TopBar
 	end
@@ -1266,9 +1266,10 @@ function OrionLib:MakeWindow(WindowConfig)
 			Position = UDim2.new(1, 0, 0.4, 0),
 			Size = UDim2.new(0, 50, 0, 50),
 			ImageColor3 = Color3.fromRGB(255, 255, 255),
-			ImageTransparency = 1
+			ImageTransparency = 1,
+			ScaleType = Enum.ScaleType.Fit
 		})
-
+	
 		local LoadSequenceText = SetProps(MakeElement("Label", WindowConfig.IntroText, 14), {
 			Parent = Orion,
 			Size = UDim2.new(1, 0, 1, 0),
@@ -1278,18 +1279,18 @@ function OrionLib:MakeWindow(WindowConfig)
 			Font = Enum.Font.GothamBold,
 			TextTransparency = 1
 		})
-
+	
 		vgs.TS:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-		wait(0.8)
-		vgs.TS:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.495, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
-		wait(0.3)
+		task.wait(0.8)
+		vgs.TS:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
+		task.wait(0.3)
 		vgs.TS:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-		wait(2)
+		task.wait(2)
 		vgs.TS:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
 		MainWindow.Visible = true
 		LoadSequenceLogo:Destroy()
 		LoadSequenceText:Destroy()
-	end 
+	end
 
 	if WindowConfig.IntroEnabled then
 		LoadSequence()
