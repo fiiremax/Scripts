@@ -24,6 +24,7 @@ local Window = OrionLib:MakeWindow({
     HidePremium = false,
     IntroEnabled = true,
     IntroText = "Orion Library",
+    TagText = "Owner",
     IntroIcon = "rbxassetid://8834748103",
     FreeMouse = false,
     Openkey = "RightShift",
