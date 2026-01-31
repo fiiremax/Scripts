@@ -638,7 +638,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		end
 	end
 	
-	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4),
+	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 0),
 		WindowConfig.SearchBar and {
 			Size = UDim2.new(1, 0, 1, -90),
 			Position = UDim2.new(0, 0, 0, 40)
@@ -2346,7 +2346,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Size = UDim2.new(1, 0, 1, -38),
 					ClipsDescendants = true,
 					Visible = false,
-					ScrollBarThickness = 2
+					ScrollBarImageTransparency = 1 
 				}), "Divider")
 			
 				local Click = SetProps(MakeElement("Button"), {
