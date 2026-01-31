@@ -138,7 +138,7 @@ Creates a Tiny TextBox X Y Z to change Positions.
 
 ```lua
 tonumber -- for all types of numbers (if not valid number or letters it will be nil.)
-KeyTab:AddPbind({
+Tab:AddPbind({
     Name = "Position",
     DefaultX = "1",
     DefaultY = "2",
