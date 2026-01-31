@@ -1507,7 +1507,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				})
 				
 				local LabelFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-					Size = UDim2.new(1, 0, 0, 30),
+					Size = UDim2.new(1, 0, 0, 33),
 					BackgroundTransparency = 0.7,
 					Parent = ItemParent
 				}), {
@@ -3399,15 +3399,14 @@ function OrionLib:MakeWindow(WindowConfig)
 
 		local ElementFunction = {}
 		
-		function ElementFunction:AddSection(SectionConfig)
-			SectionConfig = SectionConfig or {}
-			SectionConfig.Name = SectionConfig.Name or "Section"
+		function ElementFunction:AddSection(name)
+			name = name or ""
 		
 			local SectionFrame = SetChildren(SetProps(MakeElement("TFrame"), {
 				Size = UDim2.new(1, 0, 0, 26),
 				Parent = Container
 			}), {
-				AddThemeObject(SetProps(MakeElement("Label", SectionConfig.Name, 14), {
+				AddThemeObject(SetProps(MakeElement("Label", name, 14), {
 					Size = UDim2.new(1, -12, 0, 16),
 					Position = UDim2.new(0, 0, 0, 3),
 					Font = Enum.Font.GothamSemibold
@@ -3422,7 +3421,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				}),
 			})
 			
-			Relem(Container.Name, SectionConfig.Name, SectionFrame)
+			Relem(Container.Name, name, SectionFrame)
 			
 			AddConnection(SectionFrame.Holder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 				SectionFrame.Size = UDim2.new(1, 0, 0, SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y + 31)
