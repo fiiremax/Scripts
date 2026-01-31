@@ -1855,7 +1855,33 @@ function OrionLib:MakeWindow(WindowConfig)
 					Save = PBindConfig.Save
 				}
 			
-				local function CreateTB(xPos, lbl, defVal)
+				local function valinput(text)
+					local cleaned = string.gsub(text, "[^0-9%.%-]", "")
+					
+					local dotcnt = 0
+					cleaned = string.gsub(cleaned, "%.", function()
+						dotcnt = dotcnt + 1
+						return dotcnt == 1 and "." or ""
+					end)
+					
+					if string.find(cleaned, "%-") then
+						cleaned = string.gsub(cleaned, "%-", "")
+						if string.sub(text, 1, 1) == "-" then
+							cleaned = "-" .. cleaned
+						end
+					end
+					
+					local maxLen = string.find(cleaned, "%.") and 6 or 5
+					if #cleaned > maxLen then
+						cleaned = string.sub(cleaned, 1, maxLen)
+					end
+					
+					return cleaned
+				end
+			
+				local flds = {}
+				
+				local function CreateTB(xPos, lbl, defVal, idx)
 					local tb = AddThemeObject(Create("TextBox", {
 						Size = UDim2.new(1, 0, 1, 0),
 						BackgroundTransparency = 1,
@@ -1887,28 +1913,53 @@ function OrionLib:MakeWindow(WindowConfig)
 						tb
 					}), "Main")
 			
+					flds[idx] = {
+						container = cont,
+						label = lblTxt,
+						basePos = xPos,
+						currwidth = 24,
+						offset = 0
+					}
+			
 					AddConnection(tb:GetPropertyChangedSignal("Text"), function()
-						if #tb.Text > 5 then
-							tb.Text = string.sub(tb.Text, 1, 5)
+						local cleaned = valinput(tb.Text)
+						
+						if tb.Text ~= cleaned then
+							tb.Text = cleaned
+							return
 						end
 						
 						local w = math.clamp(tb.TextBounds.X + 19, 24, 80)
+						local widthDiff = w - flds[idx].currwidth
+						flds[idx].currwidth = w
 						
 						vgs.TS:Create(cont, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 							Size = UDim2.new(0, w, 0, 24)
 						}):Play()
 						
 						vgs.TS:Create(lblTxt, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-							Position = UDim2.new(1, xPos - w - 6, 0, 0)
+							Position = UDim2.new(1, flds[idx].basePos - w - 6 - flds[idx].offset, 0, 0)
 						}):Play()
+						
+						for i = 1, idx - 1 do
+							flds[i].offset = flds[i].offset + widthDiff
+							
+							vgs.TS:Create(flds[i].container, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+								Position = UDim2.new(1, flds[i].basePos - flds[i].offset, 0.5, 0)
+							}):Play()
+							
+							vgs.TS:Create(flds[i].label, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+								Position = UDim2.new(1, flds[i].basePos - flds[i].currwidth - 6 - flds[i].offset, 0, 0)
+							}):Play()
+						end
 					end)
 			
 					return cont, tb, lblTxt
 				end
 			
-				local BX, TBX, LX = CreateTB(-158, "X", PBindConfig.DefaultX)
-				local BY, TBY, LY = CreateTB(-85, "Y", PBindConfig.DefaultY)
-				local BZ, TBZ, LZ = CreateTB(-12, "Z", PBindConfig.DefaultZ)
+				local BX, TBX, LX = CreateTB(-120, "X", PBindConfig.DefaultX, 1)
+				local BY, TBY, LY = CreateTB(-65, "Y", PBindConfig.DefaultY, 2)
+				local BZ, TBZ, LZ = CreateTB(-10, "Z", PBindConfig.DefaultZ, 3)
 			
 				local PBF = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
@@ -1940,15 +1991,15 @@ function OrionLib:MakeWindow(WindowConfig)
 				function PBind:Set(x, y, z)
 					if x then
 						PBind.ValueX = tostring(x)
-						TBX.Text = string.sub(PBind.ValueX, 1, 5)
+						TBX.Text = string.sub(PBind.ValueX, 1, 6)
 					end
 					if y then
 						PBind.ValueY = tostring(y)
-						TBY.Text = string.sub(PBind.ValueY, 1, 5)
+						TBY.Text = string.sub(PBind.ValueY, 1, 6)
 					end
 					if z then
 						PBind.ValueZ = tostring(z)
-						TBZ.Text = string.sub(PBind.ValueZ, 1, 5)
+						TBZ.Text = string.sub(PBind.ValueZ, 1, 6)
 					end
 				end
 			
