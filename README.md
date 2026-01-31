@@ -47,6 +47,13 @@ Window:SetName(
 ```
 
 ---
+### Configuring Window Icon with ID
+```lua
+Window:ChangeIcon("ID") 
+--or
+Window:ChangeIcon("rbxassetid://ID")
+```
+---
 
 ## Creating a Tab
 
