@@ -53,7 +53,7 @@ function OrionLib:GenTheme(mainColor)
     return t
 end
 
-OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(40, 29, 47))
+OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(31, 20, 37))
 OrionLib.CurrentTheme = OrionLib.Themes.Default
 
 local Orion = Instance.new("ScreenGui")
@@ -1147,15 +1147,16 @@ function OrionLib:MakeWindow(WindowConfig)
 		end
 	end)
 	
-
 	if WindowConfig.ShowIcon then
 		WindowName.Position = UDim2.new(0, 50, 0, -24)
 		local WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
 			Size = UDim2.new(0, 50, 0, 50),
-			Position = UDim2.new(0, 0, 0, 0)
+			Position = UDim2.new(0, 0, 0, 0),
+			Name = "WindowIcon"
 		})
 		WindowIcon.Parent = MainWindow.TopBar
 	end
+
 
 	WindowStuff:GetPropertyChangedSignal("Visible"):Connect(function()
 		resizebtt.Visible = WindowStuff.Visible
@@ -1306,6 +1307,31 @@ function OrionLib:MakeWindow(WindowConfig)
 	end
 
 	local Functions = {}
+
+	function Functions:ChangeIcon(IconId)
+		local ficon = IconId
+		if not string.match(IconId, "rbxassetid://") then
+			ficon = "rbxassetid://" .. IconId
+		end
+		
+		local WindowIcon = MainWindow.TopBar:FindFirstChild("WindowIcon")
+		
+		if WindowIcon then
+			WindowIcon.Image = ficon
+		else
+			WindowConfig.ShowIcon = true
+			WindowName.Position = UDim2.new(0, 50, 0, -24)
+			
+			WindowIcon = SetProps(MakeElement("Image", ficon), {
+				Size = UDim2.new(0, 50, 0, 50),
+				Position = UDim2.new(0, 0, 0, 0),
+				Name = "WindowIcon"
+			})
+			WindowIcon.Parent = MainWindow.TopBar
+		end
+		
+		WindowConfig.Icon = ficon
+	end
 
 	function Functions:SetName(...)
 		local args = {...}
@@ -3059,6 +3085,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				TextboxConfig.Name = TextboxConfig.Name or "Textbox"
 				TextboxConfig.Default = TextboxConfig.Default or ""
 				TextboxConfig.TextDisappear = TextboxConfig.TextDisappear or false
+				TextboxConfig.BackGrountText = TextboxConfig.BackGrountText or "Input"
 				TextboxConfig.Callback = TextboxConfig.Callback or function() end
 
 				local Click = SetProps(MakeElement("Button"), {
@@ -3070,7 +3097,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					BackgroundTransparency = 1,
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					PlaceholderColor3 = Color3.fromRGB(210,210,210),
-					PlaceholderText = "Input",
+					PlaceholderText = TextboxConfig.BackGrountText,
 					Font = Enum.Font.GothamSemibold,
 					TextXAlignment = Enum.TextXAlignment.Center,
 					TextSize = 14,
