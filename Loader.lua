@@ -2876,7 +2876,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						end)
 					end
 				end
-			
+				
 				function Dropdown:Refresh(Options, Delete)
 					if Delete then
 						for _, v in pairs(self.Buttons) do
@@ -2892,7 +2892,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					self.Options = Options
 					DropdownConfig.Options = Options
 					self.isPDrop = DtctPDrop()
-			
+				
 					if DropdownConfig.Grouped then
 						for gName, grpOpts in pairs(Options) do
 							CrtGrp(gName, grpOpts)
@@ -2900,6 +2900,24 @@ function OrionLib:MakeWindow(WindowConfig)
 					else
 						for _, option in pairs(Options) do
 							CrtOpt(option)
+						end
+					end
+					
+					if self.isPDrop then
+						local preload = {}
+						for _, option in pairs(Options) do
+							local optTxt = type(option) == "table" and (option.text or option.name) or tostring(option)
+							local uname = optTxt:match("^(.-) %(") or optTxt
+							if vgs and vgs.ps and vgs.ps:FindFirstChild(uname) then
+								local userId = vgs.ps[uname].UserId
+								local imurl = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. userId .. "&width=420&height=420&format=png"
+								table.insert(preload, imurl)
+							end
+						end
+						if #preload > 0 then
+							spawn(function()
+								game:GetService("ContentProvider"):PreloadAsync(preload)
+							end)
 						end
 					end
 					
