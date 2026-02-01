@@ -9,8 +9,6 @@ local vgs = {
     ps  =  game:GetService("Players")
 }
 
-local GuiParent = game.CoreGui
-
 local rate = 1 / 200 
 local acc = 0
 
@@ -56,17 +54,31 @@ end
 OrionLib.Themes.Default = OrionLib:GenTheme(Color3.fromRGB(31, 20, 37))
 OrionLib.CurrentTheme = OrionLib.Themes.Default
 
-local Orion = Instance.new("ScreenGui")
+getgenv().gethui = function() return game.CoreGui end
+
+local Orion = Instance.new("ScreenGui", gethui())
 Orion.Name = "OrionLib"
-Orion.Parent = GuiParent
-for _, Interface in ipairs(GuiParent:GetChildren()) do
-	if Interface.Name == Orion.Name and Interface ~= Orion then
-		Interface:Destroy()
+
+if gethui then
+	for _, Interface in ipairs(gethui():GetChildren()) do
+		if Interface.Name == Orion.Name and Interface ~= Orion then
+			Interface:Destroy()
+		end
+	end
+else
+	for _, Interface in ipairs(game.CoreGui:GetChildren()) do
+		if Interface.Name == Orion.Name and Interface ~= Orion then
+			Interface:Destroy()
+		end
 	end
 end
 
 function OrionLib:IsRunning()
-	return Orion.Parent == GuiParent
+	if gethui then
+		return Orion.Parent == gethui()
+	else
+		return Orion.Parent == game:GetService("CoreGui")
+	end
 end
 
 function OrionLib:DestroyLib()
@@ -81,11 +93,11 @@ function OrionLib:DestroyLib()
 end
 
 task.spawn(function()
-    repeat
-        task.wait(0.5)
-    until not OrionLib:IsRunning()
-    
-    OrionLib:DestroyLib()
+	while (OrionLib:IsRunning()) do 
+		wait()
+	end
+	
+	OrionLib:DestroyLib()
 end)
 
 function AddConnection(Signal, Function)
