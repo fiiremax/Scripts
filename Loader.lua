@@ -2474,6 +2474,9 @@ function OrionLib:MakeWindow(WindowConfig)
 							BackgroundTransparency = 1,
 							ClipsDescendants = true
 						}), "Divider")
+
+						local ucorn = Instance.new("UICorner", OptBtn:FindFirstChild("Frame"):FindFirstChild("ImageLabel"))
+						ucorn.CornerRadius = UDim.new(0, 10)
 					else
 						OptBtn = AddThemeObject(SetProps(SetChildren(MakeElement("Button", Color3.fromRGB(40, 40, 40)), {
 							MakeElement("Corner", 0, 6),
