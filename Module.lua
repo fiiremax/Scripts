@@ -638,7 +638,7 @@ function UModule.cm(...)
             return "active"
         end
         
-        if cmd == "reconn" or cmd == "reconnect" then
+        if cmd == "recon" or cmd == "reconnect" then
             local connData = UModule.env.Connections[name]
             if not connData then return end
             
