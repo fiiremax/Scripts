@@ -821,7 +821,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			end
 		end
 	end
-
+	
 	local function ClearR()
 		for tabName, elements in pairs(SearchSystem.elmnts) do
 			for elementName, data in pairs(elements) do
@@ -840,6 +840,11 @@ function OrionLib:MakeWindow(WindowConfig)
 		
 		for _, container in pairs(SearchSystem.tabs) do
 			if container then
+				for _, c in pairs(container:GetChildren()) do
+					if c:IsA("Frame") and c:FindFirstChild("Holder") then
+						c.Visible = true
+					end
+				end
 				vgs.TS:Create(container, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 					CanvasPosition = Vector2.new(0, 0)
 				}):Play()
@@ -848,70 +853,136 @@ function OrionLib:MakeWindow(WindowConfig)
 		
 		SearchSystem.results = {}
 		SearchSystem.isserch = false
+		SearchSystem.srchTxt = ""
 	end
 	
-	local function Gotab(tabName)
-		if not SearchSystem.butts[tabName] or not SearchSystem.tabs[tabName] then 
-			return 
+	local function Gotab(tab)
+		if not SearchSystem.butts[tab] or not SearchSystem.tabs[tab] then
+			return
 		end
-		
-		for _, Tab in pairs(TabHolder:GetChildren()) do
-			if Tab:IsA("TextButton") then
-				Tab.Title.Font = Enum.Font.GothamSemibold
-				vgs.TS:Create(Tab.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0.4}):Play()
-				vgs.TS:Create(Tab.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play()
-			end    
+	
+		for _, b in pairs(TabHolder:GetChildren()) do
+			if b:IsA("TextButton") then
+				b.Title.Font = Enum.Font.GothamSemibold
+				vgs.TS:Create(b.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0.4}):Play()
+				vgs.TS:Create(b.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play()
+				if b:FindFirstChild("Highlight") then
+					vgs.TS:Create(b.Highlight, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+				end
+			end
 		end
-		
+	
+		local tb = SearchSystem.butts[tab]
+		vgs.TS:Create(tb.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
+		vgs.TS:Create(tb.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+		tb.Title.Font = Enum.Font.GothamBlack
+		if tb:FindFirstChild("Highlight") then
+			vgs.TS:Create(tb.Highlight, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+		end
+	
+		local cont = SearchSystem.tabs[tab]
+		if cont then
+			cont.Visible = true
+		end
+	
+		SearchSystem.actvtab = tab
+	
 		for _, container in pairs(SearchSystem.tabs) do
-			container.Visible = false
+			if container ~= cont then
+				container.Visible = false
+			end
 		end
-		
-		local targetTabButton = SearchSystem.butts[tabName]
-		vgs.TS:Create(targetTabButton.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
-		vgs.TS:Create(targetTabButton.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-		targetTabButton.Title.Font = Enum.Font.GothamBlack
-		
-		local wcontainer = SearchSystem.tabs[tabName]
-		if wcontainer then
-			wcontainer.Visible = true
-		end
-		
-		SearchSystem.actvtab = tabName
-		
+	
 		if SearchSystem.isserch then
-			local fvelm = nil
-			local minpos = math.huge
-			
-			for tabName2, elements in pairs(SearchSystem.elmnts) do
-				for elementName, data in pairs(elements) do
-					if data.frame and data.frame.Parent then
-						local isInactvtab = (tabName2 == tabName)
-						local matchsrch = SearchSystem.results[tabName2] and SearchSystem.results[tabName2][elementName]
-						data.frame.Visible = isInactvtab and matchsrch
-						
-						Hlight(data.frame, isInactvtab and matchsrch)
-						
-						if isInactvtab and matchsrch and data.frame.AbsolutePosition.Y < minpos then
-							minpos = data.frame.AbsolutePosition.Y
-							fvelm = data.frame
+			local f = nil
+			local y = math.huge
+	
+			for tn, t in pairs(SearchSystem.elmnts) do
+				for k, d in pairs(t) do
+					if d.frame and d.frame.Parent and not d.frame:FindFirstChild("Holder") then
+						local ok = (tn == tab)
+						local hit = SearchSystem.results[tn] and SearchSystem.results[tn][k]
+						d.frame.Visible = ok and hit
+						Hlight(d.frame, ok and hit)
+	
+						if ok and hit and d.frame.AbsolutePosition.Y < y then
+							y = d.frame.AbsolutePosition.Y
+							f = d.frame
 						end
 					end
 				end
 			end
-			
-			if fvelm and wcontainer then
+	
+			if cont then
+				local q = {}
+	
+				for _, child in pairs(cont:GetChildren()) do
+					if child:IsA("GuiObject") and child.Name ~= "UIListLayout" and child.Name ~= "UIPadding" then
+						local sec = child:FindFirstChild("Holder") ~= nil
+						if sec then
+							table.insert(q, {f = child, s = true})
+						elseif child.Visible then
+							table.insert(q, {f = child, s = false})
+						end
+					end
+				end
+	
+				local prev = false
+				local spnsecc = false
+	
+				for _, e in ipairs(q) do
+					if e.s then
+						local l = e.f:FindFirstChild("TextLabel")
+						local n = l and l.Text or ""
+						local vazio = n == "" or n:match("^%s*$")
+	
+						local s = string.lower(SearchSystem.srchTxt or "")
+						local match = not vazio and s ~= "" and string.find(string.lower(n), s, 1, true) ~= nil
+	
+						if match then
+							e.f.Visible = true
+							prev = true
+							spnsecc = false
+						elseif vazio then
+							if spnsecc then
+								e.f.Visible = false
+							else
+								e.f.Visible = prev
+								if e.f.Visible then
+									spnsecc = true 
+								end
+							end
+						else
+							e.f.Visible = false
+						end
+					else
+						prev = true
+						spnsecc = false  
+					end
+				end
+			end
+	
+			if f and cont then
 				task.wait(0.1)
-				local scrollPosition = fvelm.Position.Y.Offset
-				vgs.TS:Create(wcontainer, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-					CanvasPosition = Vector2.new(0, math.max(0, scrollPosition - 20))
+				vgs.TS:Create(cont, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+					CanvasPosition = Vector2.new(0, math.max(0, f.Position.Y.Offset - 20))
 				}):Play()
 			end
+	
 		else
-			for tabName2, elements in pairs(SearchSystem.elmnts) do
-				for elementName, data in pairs(elements) do
-					if data.frame then
-						Hlight(data.frame, false)
+			for tn, t in pairs(SearchSystem.elmnts) do
+				for k, d in pairs(t) do
+					if d.frame and d.frame.Parent then
+						d.frame.Visible = (tn == tab)
+						Hlight(d.frame, false)
+					end
+				end
+			end
+	
+			if cont then
+				for _, c in pairs(cont:GetChildren()) do
+					if c:IsA("Frame") and c:FindFirstChild("Holder") then
+						c.Visible = true
 					end
 				end
 			end
@@ -1015,6 +1086,12 @@ function OrionLib:MakeWindow(WindowConfig)
 		end
 	
 		AddConnection(tbxatual:GetPropertyChangedSignal("Text"), srchhdl)
+
+		AddConnection(tbxatual.FocusLost, function(enterPressed)
+			if tbxatual.Text == "" then
+				srchhdl()
+			end
+		end)
 	end
 
 	local WindowName = AddThemeObject(SetProps(MakeElement("Label", WindowConfig.Name, 14), {
@@ -1369,11 +1446,16 @@ function OrionLib:MakeWindow(WindowConfig)
 		TabConfig.Name = TabConfig.Name or "Tab"
 		TabConfig.Icon = TabConfig.Icon or ""
 		TabConfig.PremiumOnly = TabConfig.PremiumOnly or false
-
+		
 		local TabFrame = SetChildren(SetProps(MakeElement("Button"), {
 			Size = UDim2.new(1, 0, 0, 30),
 			Parent = TabHolder
 		}), {
+			AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255,255,255), 0, 6), {
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				Name = "Highlight"
+			}), {}), "Divider"),
 			AddThemeObject(SetProps(MakeElement("Image", TabConfig.Icon), {
 				AnchorPoint = Vector2.new(0, 0.5),
 				Size = UDim2.new(0, 18, 0, 18),
@@ -1389,8 +1471,20 @@ function OrionLib:MakeWindow(WindowConfig)
 				Name = "Title"
 			}), "Text")
 		})
-		AddItemTable(Tabs, TabConfig.Name, TabFrame)
 
+		AddConnection(TabFrame.MouseEnter, function()
+			if TabFrame.Title.Font ~= Enum.Font.GothamBlack then
+				vgs.TS:Create(TabFrame.Highlight, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0.8}):Play()
+			end
+		end)
+		
+		AddConnection(TabFrame.MouseLeave, function()
+			if TabFrame.Title.Font ~= Enum.Font.GothamBlack then
+				vgs.TS:Create(TabFrame.Highlight, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+			end
+		end)
+		AddItemTable(Tabs, TabConfig.Name, TabFrame)
+		
 		local Container = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 5), {
 			Size = UDim2.new(1, -150, 1, -50),
 			Position = UDim2.new(0, 150, 0, 50),
@@ -1416,12 +1510,16 @@ function OrionLib:MakeWindow(WindowConfig)
 			TabFrame.Title.TextTransparency = 0
 			TabFrame.Title.Font = Enum.Font.GothamBlack
 			Container.Visible = true
-		end    
+		end
+
 		AddConnection(TabFrame.MouseButton1Click, function()
+			if TabFrame:FindFirstChild("Highlight") then
+				vgs.TS:Create(TabFrame.Highlight, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+			end
 			Gotab(TabConfig.Name)
 		end)
 
-		local function Getelmnts(ItemParent)
+		local function Getelmnts(ItemParent, _tabName)
 			local ElementFunction = {}
 			function ElementFunction:AddLog(Text)
 				local Label = MakeElement("Label", Text, 15)
@@ -1532,7 +1630,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					end)
 				end
 				
-				Relem(ItemParent.Name, Text, LabelFrame)
+				Relem(_tabName, Text, LabelFrame)
 				return LabelFunction
 			end
 			
@@ -1554,7 +1652,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
 			
-				Relem(ItemParent.Name, Text, LabelFrame)
+				Relem(_tabName, Text, LabelFrame)
 				
 				local labelfunc = {}
 			
@@ -1614,7 +1712,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
 
-				Relem(ItemParent.Name, Text, ParagraphFrame)
+				Relem(_tabName, Text, ParagraphFrame)
 
 				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), function()
 					ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
@@ -1655,7 +1753,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					}), "TextDark"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
-				Relem(ItemParent.Name, text, ParagraphFrame)
+				Relem(_tabName, text, ParagraphFrame)
 				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), function()
 					ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
 					ParagraphFrame.Size = UDim2.new(1, 0, 0, ParagraphFrame.Content.TextBounds.Y + 35)
@@ -1713,7 +1811,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Click
 				}), "Second")
 				
-				Relem(ItemParent.Name, ButtonConfig.Name, ButtonFrame)
+				Relem(_tabName, ButtonConfig.Name, ButtonFrame)
 				
 				local function UpdateColor()
 					local baseColor = OrionLib.Themes[OrionLib.SelectedTheme].Second
@@ -1816,7 +1914,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					ToggleBox,
 					Click
 				}), "Second")
-				Relem(ItemParent.Name, ToggleConfig.Name, ToggleFrame)
+				Relem(_tabName, ToggleConfig.Name, ToggleFrame)
 				function Toggle:Set(Value)
 					Toggle.Value = Value
 					vgs.TS:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Divider}):Play()
@@ -1988,7 +2086,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					LX, BX, LY, BY, LZ, BZ
 				}), "Second")
 			
-				Relem(ItemParent.Name, PBindConfig.Name, PBF)
+				Relem(_tabName, PBindConfig.Name, PBF)
 			
 				local function UpdCb()
 					PBind.ValueX = TBX.Text
@@ -2103,7 +2201,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddThemeObject(MakeElement("Stroke"), "Stroke"),
 					sb}), "Second")
 			
-				Relem(ItemParent.Name, SliderConfig.Name, sf)
+				Relem(_tabName, SliderConfig.Name, sf)
 			
 				local function dc(c, f)
 					return Color3.new(c.R * f, c.G * f, c.B * f)
@@ -2348,7 +2446,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						Position = UDim2.new(0, 8, 0, 74),
 						Visible = false,
 						Name = "SearchContainer"
-					}), {MakeElement("Stroke"), SrchBox}), "Main")
+					}), {AddThemeObject(MakeElement("Stroke"), "Stroke"), SrchBox}), "Main")
 				end
 			
 				local DdCont = AddThemeObject(SetProps(SetChildren(MakeElement("ScrollFrame", Color3.fromRGB(40, 40, 40), 4), {
@@ -2412,7 +2510,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					MakeElement("Corner")
 				}), "Second")
 			
-				Relem(ItemParent.Name, DropdownConfig.Name, DdFrame)
+				Relem(_tabName, DropdownConfig.Name, DdFrame)
 				AddConnection(DdList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 					DdCont.CanvasSize = UDim2.new(0, 0, 0, DdList.AbsoluteContentSize.Y)
 				end)
@@ -3087,7 +3185,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					BindBox,
 					Click
 				}), "Second")
-				Relem(ItemParent.Name, BindConfig.Name, BindFrame)
+				Relem(_tabName, BindConfig.Name, BindFrame)
 				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
 					vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 19, 0, 24)}):Play()
 				end)
@@ -3213,7 +3311,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					TextContainer,
 					Click
 				}), "Second")
-				Relem(ItemParent.Name, TextboxConfig.Name, TextboxFrame)
+				Relem(_tabName, TextboxConfig.Name, TextboxFrame)
 				AddConnection(TextboxActual:GetPropertyChangedSignal("Text"), function()
 					vgs.TS:Create(TextContainer, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, TextboxActual.TextBounds.X + 16, 0, 24)}):Play()
 				end)
@@ -3357,7 +3455,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
 			
-				Relem(ItemParent.Name, ColorpickerConfig.Name, ColorpickerFrame)
+				Relem(_tabName, ColorpickerConfig.Name, ColorpickerFrame)
 			
 				local ColorInput, HueInput
 			
@@ -3533,7 +3631,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				}),
 			})
 			
-			Relem(Container.Name, name, SectionFrame)
+			Relem(TabConfig.Name, name, SectionFrame) 
 			
 			AddConnection(SectionFrame.Holder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 				SectionFrame.Size = UDim2.new(1, 0, 0, SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y + 31)
@@ -3541,13 +3639,13 @@ function OrionLib:MakeWindow(WindowConfig)
 			end)
 		
 			local SectionFunction = {}
-			for i, v in next, Getelmnts(SectionFrame.Holder) do
+			for i, v in next, Getelmnts(SectionFrame.Holder, TabConfig.Name) do  
 				SectionFunction[i] = v 
 			end
 			return SectionFunction
 		end
 
-		for i, v in next, Getelmnts(Container) do
+		for i, v in next, Getelmnts(Container, TabConfig.Name) do
 			ElementFunction[i] = v 
 		end
 
