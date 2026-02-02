@@ -637,6 +637,72 @@ function UModule.cm(...)
             end
             return "active"
         end
+        
+        if cmd == "reconn" or cmd == "reconnect" then
+            local connData = UModule.env.Connections[name]
+            if not connData then return end
+            
+            local senv = connData.eventType
+            local sprop = connData.propName
+            local scback = {}
+            for _, cb in ipairs(connData._cbacks) do
+                table.insert(scback, cb)
+            end
+            local savedTtle = connData.ttle
+            local oldInst = connData.inst
+            
+            pcall(function() connData:Disconnect() end)
+            
+            local ninst = nil
+            local callback = scback[1].func
+            
+            local i = 1
+            while true do
+                local n, value = debug.getupvalue(callback, i)
+                if not n then break end
+                
+                if type(value) == "function" then
+                    local success, result = pcall(value, oldInst.Name)
+                    if success and typeof(result) == "Instance" then
+                        ninst = result
+                        break
+                    end
+                end
+                
+                if typeof(value) == "Instance" and value.ClassName == oldInst.ClassName then
+                    ninst = value
+                    break
+                end
+                
+                i = i + 1
+            end
+            
+            if not ninst then
+                local success, char = pcall(function()
+                    return game:GetService("Players").LocalPlayer.Character
+                end)
+                
+                if success and char then
+                    ninst = char:FindFirstChild(oldInst.Name)
+                end
+            end
+            
+            if not ninst then return end
+            
+            local reconArgs = {ninst, senv}
+            if sprop then
+                table.insert(reconArgs, sprop)
+            end
+            table.insert(reconArgs, callback)
+            if savedTtle then
+                table.insert(reconArgs, savedTtle)
+            end
+            table.insert(reconArgs, name)
+            
+            UModule.cm(unpack(reconArgs))
+            
+            return
+        end
     end
     
     local inst, cback, name, stgs, ttle, once = nil, nil, nil, {}, nil, false
