@@ -21,7 +21,8 @@ local OrionLib = {
     SelectedTheme = "Default",
     UMouseMode = "ThirdPerson",
     Folder = nil,
-    SaveCfg = false
+    SaveCfg = false,
+	Toggles = {}
 }
 
 function OrionLib:GenTheme(mainColor)
@@ -260,35 +261,41 @@ function UnpackColor(Color)
 end
 
 function LoadCfg(Config)
-	local Data = vgs.HS:JSONDecode(Config)
-	table.foreach(Data, function(a,b)
-		if OrionLib.Flags[a] then
-			task.spawn(function() 
-				if OrionLib.Flags[a].Type == "Colorpicker" then
-					OrionLib.Flags[a]:Set(UnpackColor(b))
-				else
-					OrionLib.Flags[a]:Set(b)
-				end    
-			end)
-		end
-	end)
+    local Data = vgs.HS:JSONDecode(Config)
+    table.foreach(Data, function(a,b)
+        if OrionLib.Flags[a] then
+            task.spawn(function() 
+                if OrionLib.Flags[a].Type == "Colorpicker" then
+                    OrionLib.Flags[a]:Set(UnpackColor(b))
+                elseif OrionLib.Flags[a].Type == "PBind" then  
+                    if type(b) == "table" then
+                        OrionLib.Flags[a]:Set(b.x, b.y, b.z)
+                    end
+                else
+                    OrionLib.Flags[a]:Set(b)
+                end    
+            end)
+        end
+    end)
 end
 
 function SaveCfg(Name)
-	local Data = {}
-	for i,v in pairs(OrionLib.Flags) do
-		if v.Save then
-			if v.Type == "Colorpicker" then
-				Data[i] = PackColor(v.Value)
-			else
-				Data[i] = v.Value
-			end
-		end	
-	end
-
-	if writefile then
-		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(vgs.HS:JSONEncode(Data)))
-	end
+    local Data = {}
+    for i,v in pairs(OrionLib.Flags) do
+        if v.Save then
+            if v.Type == "Colorpicker" then
+                Data[i] = PackColor(v.Value)
+            elseif v.Type == "PBind" then
+                Data[i] = {x = v.ValueX, y = v.ValueY, z = v.ValueZ} 
+            else
+                Data[i] = v.Value
+            end
+        end	
+    end
+    
+    if writefile then
+        writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(vgs.HS:JSONEncode(Data)))
+    end
 end
 
 local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2,Enum.UserInputType.MouseButton3}
@@ -502,7 +509,7 @@ function OrionLib:MakeNotification(NotificationConfig)
 		NotificationConfig.Name = NotificationConfig.Name or "Notification"
 		NotificationConfig.Content = NotificationConfig.Content or "Test"
 		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://4384403532"
-		game:GetService("ContentProvider"):PreloadAsync(NotificationConfig.Image)
+		game:GetService("ContentProvider"):PreloadAsync({NotificationConfig.Image})
 		NotificationConfig.Time = NotificationConfig.Time or 15
 
 		local NotificationParent = SetProps(MakeElement("TFrame"), {
@@ -644,6 +651,19 @@ function OrionLib:MakeWindow(WindowConfig)
 		for i = 1, count do
 			local data = updates[i]
 			data[1][data[2]] = data[3]
+		end
+		
+		if self.Toggles then
+			for _, toggle in ipairs(self.Toggles) do
+				if toggle and toggle.Box and toggle.Box.Parent then
+					if not toggle.Value then 
+						toggle.Box.BackgroundColor3 = themeData.Divider
+						if toggle.Box.Stroke then
+							toggle.Box.Stroke.Color = themeData.Stroke
+						end
+					end
+				end
+			end
 		end
 		
 		if resizebtt then
@@ -1173,7 +1193,6 @@ function OrionLib:MakeWindow(WindowConfig)
 			nresize = cctime
 		end
 	end)
-	
 	
 	vgs.UIS.InputChanged:Connect(function(input)
 		if drgg and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -1875,7 +1894,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				ToggleConfig.Flag = ToggleConfig.Flag or nil
 				ToggleConfig.Save = ToggleConfig.Save or false
 
-				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save}
+				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save,Box = nil}
 
 				local Click = SetProps(MakeElement("Button"), {
 					Size = UDim2.new(1, 0, 1, 0)
@@ -1899,6 +1918,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						Name = "Ico"
 					}),
 				})
+				Toggle.Box = ToggleBox
 
 				local ToggleFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
@@ -1917,8 +1937,8 @@ function OrionLib:MakeWindow(WindowConfig)
 				Relem(_tabName, ToggleConfig.Name, ToggleFrame)
 				function Toggle:Set(Value)
 					Toggle.Value = Value
-					vgs.TS:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Divider}):Play()
-					vgs.TS:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Stroke}):Play()
+					vgs.TS:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes[OrionLib.SelectedTheme].Divider}):Play()
+					vgs.TS:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes[OrionLib.SelectedTheme].Stroke}):Play()
 					vgs.TS:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
 					ToggleConfig.Callback(Toggle.Value)
 				end    
@@ -1945,7 +1965,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				if ToggleConfig.Flag then
 					OrionLib.Flags[ToggleConfig.Flag] = Toggle
-				end	
+				end
+				table.insert(OrionLib.Toggles, Toggle)
 				return Toggle
 			end
 			
