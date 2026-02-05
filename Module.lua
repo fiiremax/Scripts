@@ -597,6 +597,68 @@ function UModule.wfc(...)
     return nil
 end
 
+function UModule.tmr(tag, a2, a3)
+    local dur = type(a2) == "number" and a2 or (type(a3) == "number" and a3 or nil)
+    local cmd = type(a2) == "string" and a2 or (type(a3) == "string" and a3 or nil)
+    
+    if not a2 and not a3 then
+        return UModule.env.Timers[tag] and UModule.env.Timers[tag]._run or false
+    end
+    
+    if cmd then
+        if not UModule.env.Timers[tag] then return end
+        
+        if cmd == "pause" then
+            UModule.env.Timers[tag]._pause = true
+            UModule.env.Timers[tag]._pt = tick()
+            
+        elseif cmd == "resume" then
+            if UModule.env.Timers[tag]._pause then
+                local pd = tick() - UModule.env.Timers[tag]._pt
+                UModule.env.Timers[tag]._et = UModule.env.Timers[tag]._et + pd
+                UModule.env.Timers[tag]._pause = false
+            end
+            
+        elseif cmd == "restart" then
+            if dur then
+                UModule.env.Timers[tag]._et = tick() + dur
+                UModule.env.Timers[tag]._pause = false
+            end
+            
+        elseif cmd == "stop" then
+            UModule.env.Timers[tag]._run = false
+            UModule.env.Timers[tag] = nil
+        end
+        return
+    end
+    
+    if not dur then return end
+    
+    if UModule.env.Timers[tag] then
+        UModule.env.Timers[tag]._run = false
+    end
+    
+    UModule.env.Timers[tag] = {
+        _run = true,
+        _pause = false,
+        _et = tick() + dur
+    }
+    
+    task.spawn(function()
+        local t = UModule.env.Timers[tag]
+        
+        while t._run do
+            task.wait()
+            
+            if not t._pause and tick() >= t._et then
+                t._run = false
+                UModule.env.Timers[tag] = nil
+                break
+            end
+        end
+    end)
+end
+
 function UModule.cm(...)
     local args = {...}
     
