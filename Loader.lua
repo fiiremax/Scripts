@@ -604,6 +604,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://8834748103"
 	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://8834748103"
 	WindowConfig.SearchBar = WindowConfig.SearchBar or nil
+	WindowConfig.IconColorChange = WindowConfig.IconColorChange or false
 	OrionLib.Folder = WindowConfig.ConfigFolder
 	OrionLib.SaveCfg = WindowConfig.SaveConfig
 
@@ -1258,11 +1259,19 @@ function OrionLib:MakeWindow(WindowConfig)
 	
 	if WindowConfig.ShowIcon then
 		WindowName.Position = UDim2.new(0, 50, 0, -24)
-		local WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
-			Size = UDim2.new(0, 50, 0, 50),
-			Position = UDim2.new(0, 0, 0, 0),
-			Name = "WindowIcon"
-		})
+			if not WindowConfig.IconColorChange then
+				WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
+					Size = UDim2.new(0, 50, 0, 50),
+					Position = UDim2.new(0, 0, 0, 0),
+					Name = "WindowIcon"
+				})
+			else
+				WindowIcon = AddThemeObject(SetProps(MakeElement("Image", WindowConfig.Icon), {
+					Size = UDim2.new(0, 50, 0, 50),
+					Position = UDim2.new(0, 0, 0, 0),
+					Name = "WindowIcon"
+				}), "Accent")
+			end
 		WindowIcon.Parent = MainWindow.TopBar
 	end
 
@@ -1430,12 +1439,19 @@ function OrionLib:MakeWindow(WindowConfig)
 		else
 			WindowConfig.ShowIcon = true
 			WindowName.Position = UDim2.new(0, 50, 0, -24)
-			
-			WindowIcon = SetProps(MakeElement("Image", ficon), {
-				Size = UDim2.new(0, 50, 0, 50),
-				Position = UDim2.new(0, 0, 0, 0),
-				Name = "WindowIcon"
-			})
+			if not WindowConfig.IconColorChange == true then
+				WindowIcon = SetProps(MakeElement("Image", ficon), {
+					Size = UDim2.new(0, 50, 0, 50),
+					Position = UDim2.new(0, 0, 0, 0),
+					Name = "WindowIcon"
+				})
+			else
+				WindowIcon = AddThemeObject(SetProps(MakeElement("Image", ficon), {
+					Size = UDim2.new(0, 50, 0, 50),
+					Position = UDim2.new(0, 0, 0, 0),
+					Name = "WindowIcon"
+				}), "Accent")
+			end
 			WindowIcon.Parent = MainWindow.TopBar
 		end
 		
@@ -3615,8 +3631,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				gersec:AddButton({
 					Name = "Reset Theme",
 					Callback = function()
-						OrionLib.Themes.Custom = OrionLib:GenTheme(Color3.fromRGB(25, 25, 25))
-						OrionLib.SelectedTheme = "Custom"
+						OrionLib.SelectedTheme = "Default"
 						OrionLib:SetTheme()
 					end
 				})
