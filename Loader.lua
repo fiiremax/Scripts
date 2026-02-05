@@ -657,7 +657,14 @@ function OrionLib:MakeWindow(WindowConfig)
 		if self.Toggles then
 			for _, toggle in ipairs(self.Toggles) do
 				if toggle and toggle.Box and toggle.Box.Parent then
-					if not toggle.Value then 
+					local accolor = toggle.uccolor and toggle.ccolor or themeData.Accent
+					
+					if toggle.Value then
+						toggle.Box.BackgroundColor3 = accolor
+						if toggle.Box.Stroke then
+							toggle.Box.Stroke.Color = accolor
+						end
+					else
 						toggle.Box.BackgroundColor3 = themeData.Divider
 						if toggle.Box.Stroke then
 							toggle.Box.Stroke.Color = themeData.Stroke
@@ -1900,29 +1907,37 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				return Button
 			end
-
+			
 			function ElementFunction:AddToggle(ToggleConfig)
 				ToggleConfig = ToggleConfig or {}
 				ToggleConfig.Name = ToggleConfig.Name or "Toggle"
 				ToggleConfig.Default = ToggleConfig.Default or false
 				ToggleConfig.Callback = ToggleConfig.Callback or function() end
-				ToggleConfig.Color = ToggleConfig.Color or Color3.fromRGB(9, 99, 195)
+				ToggleConfig.Color = ToggleConfig.Color or nil
 				ToggleConfig.Flag = ToggleConfig.Flag or nil
 				ToggleConfig.Save = ToggleConfig.Save or false
-
-				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save,Box = nil}
-
+			
+				local Toggle = {
+					Value = ToggleConfig.Default, 
+					Save = ToggleConfig.Save, 
+					Box = nil,
+					uccolor = ToggleConfig.Color ~= nil, 
+					ccolor = ToggleConfig.Color  
+				}
+			
 				local Click = SetProps(MakeElement("Button"), {
 					Size = UDim2.new(1, 0, 1, 0)
 				})
-
-				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 4), {
+			
+				local accolor = ToggleConfig.Color or OrionLib.Themes[OrionLib.SelectedTheme].Accent
+			
+				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", accolor, 0, 4), {
 					Size = UDim2.new(0, 24, 0, 24),
 					Position = UDim2.new(1, -24, 0.5, 0),
 					AnchorPoint = Vector2.new(0.5, 0.5)
 				}), {
 					SetProps(MakeElement("Stroke"), {
-						Color = ToggleConfig.Color,
+						Color = accolor,
 						Name = "Stroke",
 						Transparency = 0.5
 					}),
@@ -1935,7 +1950,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					}),
 				})
 				Toggle.Box = ToggleBox
-
+			
 				local ToggleFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
 					Parent = ItemParent
@@ -1950,39 +1965,62 @@ function OrionLib:MakeWindow(WindowConfig)
 					ToggleBox,
 					Click
 				}), "Second")
+				
 				Relem(_tabName, ToggleConfig.Name, ToggleFrame)
-				function Toggle:Set(Value)
+				
+				function Toggle:Set(Value, Silent)
 					Toggle.Value = Value
-					vgs.TS:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes[OrionLib.SelectedTheme].Divider}):Play()
-					vgs.TS:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes[OrionLib.SelectedTheme].Stroke}):Play()
-					vgs.TS:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
-					ToggleConfig.Callback(Toggle.Value)
+					local accolor = Toggle.uccolor and Toggle.ccolor or OrionLib.Themes[OrionLib.SelectedTheme].Accent
+					
+					vgs.TS:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Toggle.Value and accolor or OrionLib.Themes[OrionLib.SelectedTheme].Divider
+					}):Play()
+					vgs.TS:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						Color = Toggle.Value and accolor or OrionLib.Themes[OrionLib.SelectedTheme].Stroke
+					}):Play()
+					vgs.TS:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						ImageTransparency = Toggle.Value and 0 or 1, 
+						Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)
+					}):Play()
+					
+					if not Silent then
+						ToggleConfig.Callback(Toggle.Value)
+					end
 				end    
-
-				Toggle:Set(Toggle.Value)
-
+			
 				AddConnection(Click.MouseEnter, function()
-					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)
+					}):Play()
 				end)
-
+			
 				AddConnection(Click.MouseLeave, function()
-					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second
+					}):Play()
 				end)
-
+			
 				AddConnection(Click.MouseButton1Up, function()
-					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)
+					}):Play()
 					SaveCfg(game.GameId)
 					Toggle:Set(not Toggle.Value)
 				end)
-
+			
 				AddConnection(Click.MouseButton1Down, function()
-					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)
+					}):Play()
 				end)
-
+			
 				if ToggleConfig.Flag then
 					OrionLib.Flags[ToggleConfig.Flag] = Toggle
 				end
 				table.insert(OrionLib.Toggles, Toggle)
+				
+				Toggle:Set(Toggle.Value, true)
+				
 				return Toggle
 			end
 			
