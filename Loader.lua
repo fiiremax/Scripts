@@ -19,7 +19,7 @@ local OrionLib = {
     Flags = {},
     Themes = {},
     SelectedTheme = "Default",
-    UMouseMode = "ThirdPerson",
+    UMouseMode = "FreeMouse",
     Folder = nil,
     SaveCfg = false,
 	Toggles = {}
@@ -597,7 +597,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		WindowConfig.IntroEnabled = true
 	end
 	WindowConfig.FreeMouse = WindowConfig.FreeMouse or true
-	WindowConfig.Openkey = WindowConfig.Openkey or "RightShift"
+	WindowConfig.Openkey = WindowConfig.Openkey or "M"
 	WindowConfig.IntroText = WindowConfig.IntroText or "Orion Library"
 	WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
 	WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
@@ -1260,19 +1260,19 @@ function OrionLib:MakeWindow(WindowConfig)
 	
 	if WindowConfig.ShowIcon then
 		WindowName.Position = UDim2.new(0, 50, 0, -24)
-			if not WindowConfig.IconColorChange then
-				WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
-					Size = UDim2.new(0, 50, 0, 50),
-					Position = UDim2.new(0, 0, 0, 0),
-					Name = "WindowIcon"
-				})
-			else
-				WindowIcon = AddThemeObject(SetProps(MakeElement("Image", WindowConfig.Icon), {
-					Size = UDim2.new(0, 50, 0, 50),
-					Position = UDim2.new(0, 0, 0, 0),
-					Name = "WindowIcon"
-				}), "Accent")
-			end
+		if not WindowConfig.IconColorChange then
+			WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
+				Size = UDim2.new(0, 50, 0, 50),
+				Position = UDim2.new(0, 0, 0, 0),
+				Name = "WindowIcon"
+			})
+		else
+			WindowIcon = AddThemeObject(SetProps(MakeElement("Image", WindowConfig.Icon), {
+				Size = UDim2.new(0, 50, 0, 50),
+				Position = UDim2.new(0, 0, 0, 0),
+				Name = "WindowIcon"
+			}), "Accent")
+		end
 		WindowIcon.Parent = MainWindow.TopBar
 	end
 
