@@ -33,7 +33,8 @@ local Window = OrionLib:MakeWindow({
     CloseCallback = function()
         -- Code to execute when GUI closes
     end,
-    SearchBar = true -- Enable search bar
+    SearchBar = true, -- Enable search bar
+    IconColorChange = false -- by default, it lets u put a white icon and it will change if u change the theme aswell
 })
 ```
 
@@ -138,7 +139,7 @@ Creates a Tiny TextBox X Y Z to change Positions.
 
 ```lua
 tonumber -- for all types of numbers (if not valid number or letters it will be nil.)
-Tab:AddPbind({
+KeyTab:AddPbind({
     Name = "Position",
     DefaultX = "1",
     DefaultY = "2",
