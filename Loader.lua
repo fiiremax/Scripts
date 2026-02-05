@@ -22,7 +22,8 @@ local OrionLib = {
     UMouseMode = "FreeMouse",
     Folder = nil,
     SaveCfg = false,
-	Toggles = {}
+    Toggles = {},
+    Dropdowns = {}
 }
 
 function OrionLib:GenTheme(mainColor)
@@ -668,6 +669,23 @@ function OrionLib:MakeWindow(WindowConfig)
 						toggle.Box.BackgroundColor3 = themeData.Divider
 						if toggle.Box.Stroke then
 							toggle.Box.Stroke.Color = themeData.Stroke
+						end
+					end
+				end
+			end
+		end
+		
+		if self.Dropdowns then
+			for _, dropdown in ipairs(self.Dropdowns) do
+				if dropdown and dropdown.Buttons then
+					for value, btn in pairs(dropdown.Buttons) do
+						if btn and btn.Parent and btn:FindFirstChild("Checkbox") then
+							local sel = table.find(dropdown.Value, value)
+							
+							btn.Checkbox.BackgroundColor3 = sel and themeData.Accent or themeData.Divider
+							if btn.Checkbox:FindFirstChild("Stroke") then
+								btn.Checkbox.Stroke.Color = sel and themeData.Accent or themeData.Stroke
+							end
 						end
 					end
 				end
@@ -2454,7 +2472,8 @@ function OrionLib:MakeWindow(WindowConfig)
 					srchMode = false,
 					Type = "Dropdown",
 					Save = DropdownConfig.Save,
-					isPDrop = false
+					isPDrop = false,
+					Multi = DropdownConfig.Multi
 				}
 				
 				local function DtctPDrop()
@@ -2589,7 +2608,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				AddConnection(DdList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 					DdCont.CanvasSize = UDim2.new(0, 0, 0, DdList.AbsoluteContentSize.Y)
 				end)
-			
+				
 				local function CrtOpt(optData, group)
 					local optTxt, optIcon, optVal, dispName, uname
 					
@@ -2601,16 +2620,16 @@ function OrionLib:MakeWindow(WindowConfig)
 						optTxt = tostring(optData)
 						optVal = optData
 					end
-			
+				
 					if Dropdown.isPDrop then
 						local name, dispExt = optTxt:match("^(.-)%s%((.-)%)$")
 						uname = name or optTxt
 						dispName = dispExt or optTxt
 					end
-			
+				
 					local optH = Dropdown.isPDrop and 60 or 28
 					local OptBtn
-			
+				
 					if Dropdown.isPDrop then
 						OptBtn = AddThemeObject(SetProps(SetChildren(MakeElement("Button", Color3.fromRGB(40, 40, 40)), {
 							MakeElement("Corner", 0, 6),
@@ -2648,7 +2667,7 @@ function OrionLib:MakeWindow(WindowConfig)
 							BackgroundTransparency = 1,
 							ClipsDescendants = true
 						}), "Divider")
-
+				
 						local ucorn = Instance.new("UICorner", OptBtn:FindFirstChild("Frame"):FindFirstChild("ImageLabel"))
 						ucorn.CornerRadius = UDim.new(0, 10)
 					else
@@ -2666,12 +2685,25 @@ function OrionLib:MakeWindow(WindowConfig)
 								Name = "Title",
 								TextXAlignment = Enum.TextXAlignment.Left
 							}), "Text"),
-							DropdownConfig.Multi and AddThemeObject(SetProps(MakeElement("RoundFrame", Color3.fromRGB(60, 60, 60), 0, 2), {
+							DropdownConfig.Multi and SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(60, 60, 60), 0, 2), {
 								Size = UDim2.new(0, 16, 0, 16),
 								Position = UDim2.new(1, -24, 0.5, 0),
 								AnchorPoint = Vector2.new(0, 0.5),
 								Name = "Checkbox"
-							}), "Stroke") or MakeElement("TFrame")
+							}), {
+								SetProps(MakeElement("Stroke"), {
+									Color = Color3.fromRGB(60, 60, 60),
+									Thickness = 1,
+									Name = "Stroke"
+								}),
+								SetProps(MakeElement("Image", "rbxassetid://3944680095"), {
+									Size = UDim2.new(0, 15, 0, 15),
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									Position = UDim2.new(0.5, 0, 0.5, 0),
+									ImageColor3 = Color3.fromRGB(255, 255, 255),
+									Name = "Ico"
+								})
+							}) or MakeElement("TFrame")
 						}), {
 							Parent = group or DdCont,
 							Size = UDim2.new(1, 0, 0, optH),
@@ -2705,20 +2737,20 @@ function OrionLib:MakeWindow(WindowConfig)
 							SaveCfg(game.GameId)
 						end)
 					end)
-			
+				
 					AddConnection(OptBtn.MouseEnter, function()
 						vgs.TS:Create(OptBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.8}):Play()
 					end)
-			
+				
 					AddConnection(OptBtn.MouseLeave, function()
 						local sel = DropdownConfig.Multi and table.find(Dropdown.Value, optVal) or (Dropdown.Value == optVal)
 						vgs.TS:Create(OptBtn, TweenInfo.new(0.15), {BackgroundTransparency = sel and 0.2 or 1}):Play()
 					end)
-			
+				
 					Dropdown.Buttons[optVal] = OptBtn
 					return OptBtn
 				end
-			
+				
 				local function CrtGrp(gName, opts)
 					local GrpFrame = SetChildren(SetProps(MakeElement("TFrame"), {
 						Size = UDim2.new(1, 0, 0, 0),
@@ -2805,10 +2837,10 @@ function OrionLib:MakeWindow(WindowConfig)
 						end)
 					end
 				end
-			
+				
 				function Dropdown:UpdSel(mode)
 					local selTxt = ""
-					if DropdownConfig.Multi then
+					if self.Multi then  
 						if type(self.Value) == "table" and #self.Value > 0 then
 							local vVals = {}
 							for _, v in pairs(self.Value) do
@@ -2826,7 +2858,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					DdFrame.Header.Selected.Text = selTxt
 				
 					for value, btn in pairs(self.Buttons) do
-						local sel = DropdownConfig.Multi and table.find(self.Value, value) or (self.Value == value)
+						local sel = self.Multi and table.find(self.Value, value) or (self.Value == value)
 						local twInf = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 				
 						vgs.TS:Create(btn, twInf, {BackgroundTransparency = sel and 0.2 or 1}):Play()
@@ -2844,13 +2876,27 @@ function OrionLib:MakeWindow(WindowConfig)
 							end
 						end
 				
-						if DropdownConfig.Multi and btn:FindFirstChild("Checkbox") then
-							local chkCol = sel and Color3.fromRGB(0, 162, 255) or Color3.fromRGB(60, 60, 60)
-							vgs.TS:Create(btn.Checkbox, twInf, {BackgroundColor3 = chkCol}):Play()
+						if self.Multi and btn:FindFirstChild("Checkbox") then
+							vgs.TS:Create(btn.Checkbox, twInf, {
+								BackgroundColor3 = sel and OrionLib.Themes[OrionLib.SelectedTheme].Accent or OrionLib.Themes[OrionLib.SelectedTheme].Divider
+							}):Play()
+							
+							if btn.Checkbox:FindFirstChild("Stroke") then
+								vgs.TS:Create(btn.Checkbox.Stroke, twInf, {
+									Color = sel and OrionLib.Themes[OrionLib.SelectedTheme].Accent or OrionLib.Themes[OrionLib.SelectedTheme].Stroke
+								}):Play()
+							end
+							
+							if btn.Checkbox:FindFirstChild("Ico") then
+								vgs.TS:Create(btn.Checkbox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+									ImageTransparency = sel and 0 or 1, 
+									Size = sel and UDim2.new(0, 15, 0, 15) or UDim2.new(0, 8, 0, 8)
+								}):Play()
+							end
 						end
 					end
 					
-					if DropdownConfig.Multi and DropdownConfig.Call and mode ~= 1 then
+					if self.Multi and DropdownConfig.Call and mode ~= 1 then 
 						pcall(function()
 							DropdownConfig.Callback(self.Value)
 						end)
@@ -3173,6 +3219,8 @@ function OrionLib:MakeWindow(WindowConfig)
 				if DropdownConfig.Flag then
 					OrionLib.Flags[DropdownConfig.Flag] = Dropdown
 				end
+
+				table.insert(OrionLib.Dropdowns, Dropdown)
 				
 				if Dropdown.isPDrop and vgs and vgs.ps then
 					Dropdown.PlrLvConn = vgs.ps.PlayerRemoving:Connect(function(plr)
