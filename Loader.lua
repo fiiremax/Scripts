@@ -1214,14 +1214,15 @@ function OrionLib:MakeWindow(WindowConfig)
 	end)
 	
 	local lctime = 0
-	local dctime = 0.3
+	local dctime = 0.15
+	local minimized = false
 	
 	AddConnection(DragPoint.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			local cctime2 = tick()
 			local timediff = cctime2 - lctime
 			
-			if timediff <= dctime then
+			if timediff <= dctime and minimized then
 				mouse1release()
 				local screenSize = workspace.CurrentCamera.ViewportSize
 				local windowSize = MainWindow.AbsoluteSize
@@ -1317,7 +1318,6 @@ function OrionLib:MakeWindow(WindowConfig)
 	end)
 	local reztween = nil
 	local mintween = nil
-	local minimized = false
 	
 	local function updminframe()
 		if not minimized then return end
