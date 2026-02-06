@@ -70,8 +70,10 @@ UModule.env.ov = {
     mouse = vgs.p:GetMouse(),
 }
 
+UModule.env.Connections = UModule.env.Connections or {}
 UModule.env.Valores = UModule.env.Valores or {}
 UModule.env.Toggle = UModule.env.Toggle or {}
+UModule.env.Timers = UModule.env.Timers or {}
 UModule.env.Conns = UModule.env.Conns or {}
 UModule.env.TempV = UModule.env.TempV or {}
 UModule.env.TempL = UModule.env.TempL or {}
@@ -79,10 +81,9 @@ UModule.env.TempT = UModule.env.TempT or {}
 UModule.env.TempC = UModule.env.TempC or {}
 UModule.env.Drops = UModule.env.Drops or {}
 UModule.env.Lists = UModule.env.Lists or {}
+UModule.env.Vars = UModule.env.Vars or {}
 UModule.env.l = UModule.env.l or {}
 UModule.env.v = UModule.env.v or {}
-UModule.env.Vars = UModule.env.Vars or {}
-UModule.env.Connections = UModule.env.Connections or {}
 
 UModule.env.fpsval = 60
 
