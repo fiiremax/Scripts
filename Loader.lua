@@ -27,27 +27,25 @@ local OrionLib = {
 }
 
 function OrionLib:GenTheme(mainColor)
-    local lum = 0.299 * mainColor.R + 0.587 * mainColor.G + 0.114 * mainColor.B
-    local h, s, v = Color3.toHSV(mainColor)
-    local dark = lum < 0.5
+    local r, g, b = mainColor.R * 255, mainColor.G * 255, mainColor.B * 255
+    local lum = 0.299 * r + 0.587 * g + 0.114 * b
+    local dark = lum < 128
     local t = {Main = mainColor}
     
     if dark then
-        t.Second = Color3.fromHSV(h, s * 0.95, math.clamp(v * 1.28, 0, 1))
-        t.Stroke = Color3.fromHSV(h, s * 0.8, math.clamp(v * 2.4, 0, 1))
-        t.Divider = Color3.fromHSV(h, s * 0.85, math.clamp(v * 2.0, 0, 1))
-        local veryDark = lum < 0.15
-        t.Text = Color3.fromHSV(h, math.min(s * (veryDark and 0.05 or 0.15), veryDark and 0.02 or 0.08), veryDark and 0.94 or 0.92)
-        t.TextDark = Color3.fromHSV(h, math.min(s * (veryDark and 0.1 or 0.25), veryDark and 0.05 or 0.12), veryDark and 0.59 or 0.62)
-        t.Accent = Color3.fromHSV(h, math.clamp(s * 1.8, 0.4, 1), math.clamp(v * 3.5, 0.3, 1))
+        t.Second = Color3.fromRGB(math.clamp(r * 1.12, 0, 255), math.clamp(g * 1.12, 0, 255), math.clamp(b * 1.12, 0, 255))
+        t.Stroke = Color3.fromRGB(math.clamp(r * 1.45, 0, 255), math.clamp(g * 1.45, 0, 255), math.clamp(b * 1.45, 0, 255))
+        t.Divider = Color3.fromRGB(math.clamp(r * 1.28, 0, 255), math.clamp(g * 1.28, 0, 255), math.clamp(b * 1.28, 0, 255))
+        t.Text = Color3.fromRGB(240, 240, 242)
+        t.TextDark = Color3.fromRGB(155, 155, 160)
+        t.Accent = Color3.fromRGB(math.clamp(r * 1.85, 0, 255), math.clamp(g * 1.85, 0, 255), math.clamp(b * 1.85, 0, 255))
     else
-        t.Second = Color3.fromHSV(h, s * 0.9, math.clamp(v * 1.09, 0, 1))
-        t.Stroke = Color3.fromHSV(h, s * 1.1, math.clamp(v * 0.82, 0, 1))
-        t.Divider = Color3.fromHSV(h, s * 1.05, math.clamp(v * 0.91, 0, 1))
-        local veryLight = lum > 0.85
-        t.Text = Color3.fromHSV(h, math.min(s * (veryLight and 0.3 or 0.25), veryLight and 0.08 or 0.1), veryLight and 0.20 or 0.25)
-        t.TextDark = Color3.fromHSV(h, math.min(s * (veryLight and 0.2 or 0.15), veryLight and 0.05 or 0.08), veryLight and 0.39 or 0.45)
-        t.Accent = Color3.fromHSV(h, s * 1.2, math.clamp(v * 0.68, 0, 1))
+        t.Second = Color3.fromRGB(math.clamp(r * 0.94, 0, 255), math.clamp(g * 0.94, 0, 255), math.clamp(b * 0.94, 0, 255))
+        t.Stroke = Color3.fromRGB(math.clamp(r * 0.75, 0, 255), math.clamp(g * 0.75, 0, 255), math.clamp(b * 0.75, 0, 255))
+        t.Divider = Color3.fromRGB(math.clamp(r * 0.85, 0, 255), math.clamp(g * 0.85, 0, 255), math.clamp(b * 0.85, 0, 255))
+        t.Text = Color3.fromRGB(35, 35, 38)
+        t.TextDark = Color3.fromRGB(110, 110, 115)
+        t.Accent = Color3.fromRGB(math.clamp(r * 0.72, 0, 255), math.clamp(g * 0.72, 0, 255), math.clamp(b * 0.72, 0, 255))
     end
     
     return t
