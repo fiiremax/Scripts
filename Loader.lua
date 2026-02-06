@@ -3483,7 +3483,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				}
 			
 				local ColorSelection = Create("ImageLabel", {
-					Size = UDim2.new(0, 18, 0, 18),
+					Size = UDim2.new(0, 10, 0, 10),
 					Position = UDim2.new(ColorS, 0, 1 - ColorV),
 					ScaleType = Enum.ScaleType.Stretch,
 					AnchorPoint = Vector2.new(0.5, 0.5),
@@ -3491,7 +3491,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Image = "http://www.roblox.com/asset/?id=4805639000"
 				})
 				local HueSelection = Create("ImageLabel", {
-					Size = UDim2.new(0, 18, 0, 18),
+					Size = UDim2.new(0, 10, 0, 10),
 					Position = UDim2.new(0.5, 0, 1 - ColorH),
 					ScaleType = Enum.ScaleType.Stretch,
 					AnchorPoint = Vector2.new(0.5, 0.5),
@@ -3524,7 +3524,7 @@ function OrionLib:MakeWindow(WindowConfig)
 							ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 4))
 						}
 					}),
-					Create("UICorner", {CornerRadius = UDim.new(0, 5)}),
+					Create("UICorner", {CornerRadius = UDim.new(0, 3)}),
 					HueSelection
 				})
 			
