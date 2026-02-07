@@ -524,8 +524,7 @@ function OrionLib:MakeNotification(NotificationConfig)
 			BackgroundTransparency = 0,
 			AutomaticSize = Enum.AutomaticSize.Y
 		}), {
-			AddThemeObject(MakeElement("Stroke", Color3.fromRGB(93, 93, 93), 1.2), "Stroke"),
-			MakeElement("Padding", 12, 12, 12, 12),
+			MakeElement("Padding", 16, 12, 12, 12),
 			AddThemeObject(SetProps(MakeElement("Image", NotificationConfig.Image), {
 				Size = UDim2.new(0, 20, 0, 20),
 				ImageColor3 = Color3.fromRGB(240, 240, 240),
@@ -554,12 +553,11 @@ function OrionLib:MakeNotification(NotificationConfig)
 		vgs.TS:Create(NotificationFrame:WaitForChild("Icon"), TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
 		vgs.TS:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
 		task.wait(0.3)
-		vgs.TS:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
 		vgs.TS:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
 		vgs.TS:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
 		task.wait(0.05)
 
-		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
+		NotificationFrame:TweenPosition(UDim2.new(1, 40, 0, 0),'In','Quint',0.8,true)
 		task.wait(1.35)
 		NotificationFrame:Destroy()
 	end)
@@ -3136,7 +3134,7 @@ function OrionLib:MakeWindow(WindowConfig)
 							end
 						end
 						if #preload > 0 then
-							spawn(function()
+							task.spawn(function()
 								game:GetService("ContentProvider"):PreloadAsync(preload)
 							end)
 						end
@@ -3220,9 +3218,31 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				table.insert(OrionLib.Dropdowns, Dropdown)
 				
-				if Dropdown.isPDrop and vgs and vgs.ps then
-					Dropdown.PlrLvConn = vgs.ps.PlayerRemoving:Connect(function(plr)
+				if vgs and vgs.ps then
+					AddConnection(vgs.ps.PlayerAdded, function(plr)
+						Dropdown.isPDrop = DtctPDrop()
+					end)
+					
+					AddConnection(vgs.ps.PlayerRemoving, function(plr)
+						if not Dropdown.isPDrop then return end
+						
 						local pName = plr.Name
+						
+						for i = #Dropdown.Options, 1, -1 do
+							local optTxt = type(Dropdown.Options[i]) == "table" and (Dropdown.Options[i].text or Dropdown.Options[i].name) or tostring(Dropdown.Options[i])
+							local name = optTxt:match("^(.-) %(") or optTxt
+							
+							if name == pName then
+								local optVal = type(Dropdown.Options[i]) == "table" and (Dropdown.Options[i].value or optTxt) or Dropdown.Options[i]
+								
+								if Dropdown.Buttons[optVal] then
+									Dropdown.Buttons[optVal]:Destroy()
+									Dropdown.Buttons[optVal] = nil
+								end
+								
+								table.remove(Dropdown.Options, i)
+							end
+						end
 						
 						if DropdownConfig.Multi then
 							for i = #Dropdown.Value, 1, -1 do
@@ -3233,17 +3253,28 @@ function OrionLib:MakeWindow(WindowConfig)
 									table.remove(Dropdown.Value, i)
 								end
 							end
-							Dropdown:UpdSel()
 							DropdownConfig.Callback(Dropdown.Value)
 						else
 							local currName = Dropdown.Value:match("^(.-) %(") or Dropdown.Value
 							if currName == pName then
+								OrionLib:MakeNotification({
+									Name = "Player Left",
+									Content = pName .. " Left the Game.",
+									Image = "rbxassetid://7733911828",
+									Time = 5
+								})
 								Dropdown:Set("...")
 							end
 						end
+						
+						Dropdown:UpdSel()
+						
+						if Dropdown.Toggled then
+							Dropdown:UpdVis()
+						end
 					end)
 				end
-			
+					
 				return Dropdown
 			end
 			
