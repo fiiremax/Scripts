@@ -3,8 +3,8 @@ local UModule = {}
 local vgs = {
     CE = game:GetService("ReplicatedStorage").CharacterEvents,
     CAS = game:GetService("ContextActionService"),
-    p = game:GetService("Players").LocalPlayer,
     VIM = game:GetService("VirtualInputManager"),
+    p = game:GetService("Players").LocalPlayer,
     RS = game:GetService("ReplicatedStorage"),
     UIS = game:GetService("UserInputService"),
     TXS = game:GetService("TextChatService"),
@@ -13,8 +13,8 @@ local vgs = {
     TS = game:GetService("TweenService"),
     RunS = game:GetService("RunService"),
     SG = game:GetService("StarterGui"),
-    ps = game:GetService("Players"),
     Debris = game:GetService("Debris"),
+    ps = game:GetService("Players"),
 }
 
 local gtable = getgenv()
@@ -133,7 +133,7 @@ function UModule.MBP(name)
 end
 
 function UModule.inpast(model)
-    return UModule.env.ov.inv:FindFirstChild(model)
+    return workspace:FindFirstChild(UModule.env.p.Name .. "SpawnedInToys"):FindFirstChild(model)
 end
 
 function UModule.GPNames(mode, arg)
@@ -811,7 +811,12 @@ function UModule.cm(...)
             return
         end
         
-        table.insert(UModule.env.Connections[cname]._cbacks, {func = cback, once = once})
+        table.insert(UModule.env.Connections[cname]._cbacks, {
+            func = cback, 
+            once = once,
+            counter = 0,
+            ttle = ttle
+        })
         return UModule.env.Connections[cname]
     end
     
@@ -821,7 +826,13 @@ function UModule.cm(...)
     local prop = nil
     
     if not event then
-        name = stgs[2] or tostring(inst) .. "_Destroying_" .. gfstr(cback)
+        local fstr = gfstr(cback)
+        
+        if once and not name then
+            name = "once_" .. tick()
+        else
+            name = stgs[2] or tostring(inst) .. "_Destroying_" .. fstr
+        end
         
         if UModule.env.Connections[name] then
             UModule.env.Connections[name] = nil
@@ -833,8 +844,8 @@ function UModule.cm(...)
             connection = conn,
             inst = inst,
             eventType = "Destroying",
-            _cbacks = {{func = cback, once = once}},
-            _funcString = gfstr(cback),
+            _cbacks = {{func = cback, once = once, counter = 0, ttle = ttle}},
+            _funcString = fstr,
             _paused = false,
             Disconnect = function(self)
                 if self.connection then
@@ -858,9 +869,13 @@ function UModule.cm(...)
     local fstr = gfstr(cback)
     
     if not name then
-        name = tostring(inst) .. "_" .. tostring(event)
-        if prop then name = name .. "_" .. prop end
-        name = name .. "_" .. fstr
+        if once then
+            name = "once_" .. tick()
+        else
+            name = tostring(inst) .. "_" .. tostring(event)
+            if prop then name = name .. "_" .. prop end
+            name = name .. "_" .. fstr
+        end
     end
     
     if UModule.env.Connections[name] then
@@ -871,28 +886,12 @@ function UModule.cm(...)
         end
     end
     
-    local counter = 0
-    
     local function rcbs(...)
         local connData = UModule.env.Connections[name]
         if not connData then return end
         
         if connData._paused then
             return
-        end
-        
-        if ttle then
-            counter = counter + 1
-            local tthVal
-            if type(ttle) == "table" then
-                tthVal = ttle.ref and ttle.ref[ttle.key] or ttle
-            else
-                tthVal = ttle
-            end
-            if counter < tthVal then
-                return
-            end
-            counter = 0
         end
         
         local args = {...}
@@ -903,13 +902,36 @@ function UModule.cm(...)
         end
         
         local toRemove = {}
+        
         for _, cbData in ipairs(callbacksCopy) do
-            local success = pcall(function()
-                cbData.entry.func(unpack(args))
-            end)
+            local cbEntry = cbData.entry
+            local ok = true
             
-            if cbData.entry.once then
-                table.insert(toRemove, cbData.index)
+            if cbEntry.ttle then
+                cbEntry.counter = cbEntry.counter + 1
+                local tthVal
+                if type(cbEntry.ttle) == "table" then
+                    tthVal = cbEntry.ttle.ref and cbEntry.ttle.ref[cbEntry.ttle.key] or cbEntry.ttle
+                else
+                    tthVal = cbEntry.ttle
+                end
+                if cbEntry.counter < tthVal then
+                    ok = false
+                else
+                    cbEntry.counter = 0
+                end
+            end
+            
+            if ok then
+                task.spawn(function()
+                    pcall(function()
+                        cbEntry.func(unpack(args))
+                    end)
+                end)
+                
+                if cbEntry.once then
+                    table.insert(toRemove, cbData.index)
+                end
             end
         end
         
@@ -962,7 +984,7 @@ function UModule.cm(...)
         inst = inst,
         eventType = event,
         propName = prop,
-        _cbacks = {{func = cback, once = once}},
+        _cbacks = {{func = cback, once = once, counter = 0, ttle = ttle}},
         _funcString = fstr,
         _paused = false,
         ttle = ttle,
