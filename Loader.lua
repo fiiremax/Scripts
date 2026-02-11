@@ -2455,6 +2455,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				DropdownConfig.MaxHeight = DropdownConfig.MaxHeight or 200
 				DropdownConfig.Callback = DropdownConfig.Callback or function() end
 				DropdownConfig.Flag = DropdownConfig.Flag or nil
+				DropdownConfig.PlrLeftNote = DropdownConfig.PlrLeftNote or false
 				DropdownConfig.Save = DropdownConfig.Save or false
 			
 				local Dropdown = {
@@ -3226,7 +3227,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddConnection(vgs.ps.PlayerRemoving, function(plr)
 						if not Dropdown.isPDrop then return end
 						
-						local pName = plr.Name
+						local pName = plr.DisplayName
 						
 						for i = #Dropdown.Options, 1, -1 do
 							local optTxt = type(Dropdown.Options[i]) == "table" and (Dropdown.Options[i].text or Dropdown.Options[i].name) or tostring(Dropdown.Options[i])
@@ -3256,15 +3257,15 @@ function OrionLib:MakeWindow(WindowConfig)
 							DropdownConfig.Callback(Dropdown.Value)
 						else
 							local currName = Dropdown.Value:match("^(.-) %(") or Dropdown.Value
-							if currName == pName then
+							if currName == pName and DropdownConfig.PlrLeftNote then
 								OrionLib:MakeNotification({
-									Name = "Player Left",
+									Name = "Selected Player Left!",
 									Content = pName .. " Left the Game.",
 									Image = "rbxassetid://7733911828",
 									Time = 5
 								})
-								Dropdown:Set("...")
 							end
+							Dropdown:Set("...")
 						end
 						
 						Dropdown:UpdSel()
