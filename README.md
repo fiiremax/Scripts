@@ -1,4 +1,4 @@
-  # Orion Library Custom - Documentation
+# Orion Library Custom - Documentation
 
 ## Introduction
 
@@ -7,7 +7,6 @@ Orion Library Custom is an enhanced UI library for Roblox featuring advanced ele
 ---
 
 ## Booting the Library
-
 ```lua
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fiiremax/Scripts/refs/heads/main/Loader.lua')))()
 ```
@@ -15,7 +14,6 @@ local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fii
 ---
 
 ## Creating a Window
-
 ```lua
 local Window = OrionLib:MakeWindow({
     Name = "Title of the library",
@@ -33,17 +31,16 @@ local Window = OrionLib:MakeWindow({
     CloseCallback = function()
         -- Code to execute when GUI closes
     end,
-    SearchBar = true, -- Enable search bar
-    IconColorChange = false -- by default, it lets u put a white icon and it will change if u change the theme aswell
+    SearchBar = true,
+    IconColorChange = false
 })
 ```
 
 ### Configuring Window Name with Colors
-
 ```lua
 Window:SetName(
-    {"Orion ", "#00FF00"},  -- Green text
-    {"Library", "#FF0000"}  -- Red text
+    {"Orion ", "#00FF00"},
+    {"Library", "#FF0000"}
 )
 ```
 
@@ -57,7 +54,6 @@ Window:ChangeIcon("rbxassetid://ID")
 ---
 
 ## Creating a Tab
-
 ```lua
 local Tab = Window:MakeTab({
     Name = "Tab Name",
@@ -69,7 +65,6 @@ local Tab = Window:MakeTab({
 ---
 
 ## Creating a Section
-
 ```lua
 local Section = Tab:AddSection({
     Name = "Section Name"
@@ -79,7 +74,6 @@ local Section = Tab:AddSection({
 ---
 
 ## Notifications
-
 ```lua
 OrionLib:MakeNotification({
     Name = "Title!",
@@ -94,24 +88,21 @@ OrionLib:MakeNotification({
 ## Label
 
 Creates a simple text label.
-
 ```lua
 local Label = Tab:AddLabel("Label Text")
 ```
 
 ### Updating Label
-
 ```lua
 Label:Set("New Text")
 ```
 
 ### Updating Label with Colors
-
 ```lua
 Label:Set("Player Health: 100", {
-    ["Player"] = "#00FF00",  -- Green
-    ["Health"] = "#FF0000",  -- Red
-    ["100"] = "#FFFF00"      -- Yellow
+    ["Player"] = "#00FF00",
+    ["Health"] = "#FF0000",
+    ["100"] = "#FFFF00"
 })
 ```
 
@@ -120,14 +111,12 @@ Label:Set("Player Health: 100", {
 ## ColorLabel
 
 Creates a label with custom color and alignment.
-
 ```lua
 local ColorLabel = Tab:ColorLabel("Text", Color3.fromRGB(255, 0, 0), "Center")
 -- Position: "Left", "Center", "Right"
 ```
 
 ### Updating ColorLabel
-
 ```lua
 ColorLabel:Set("New Text", Color3.fromRGB(0, 255, 0), "Right")
 ```
@@ -136,7 +125,6 @@ ColorLabel:Set("New Text", Color3.fromRGB(0, 255, 0), "Right")
 ## AddPBind
 
 Creates a Tiny TextBox X Y Z to change Positions.
-
 ```lua
 tonumber -- for all types of numbers (if not valid number or letters it will be nil.)
 KeyTab:AddPbind({
@@ -148,38 +136,31 @@ KeyTab:AddPbind({
         print(tonumber(x), tonumber(y), tonumber(z))
     end
 })
-
 ```
 
 ## Paragraph
 
-Creates a title with description.
-
+Creates a title with description. Supports text alignment and line breaks with automatic window resize handling.
 ```lua
-local Paragraph = Tab:AddParagraph("Paragraph Title", "Paragraph Content")
+local Paragraph = Tab:AddParagraph("Paragraph Title", "Paragraph Content", "Left")
+-- Alignment: "Left" (default), "Center", "Right"
+```
+
+### With Line Breaks
+```lua
+local Paragraph = Tab:AddParagraph("Title", "Line 1\nLine 2\nLine 3", "Center")
 ```
 
 ### Updating Paragraph
-
 ```lua
-Paragraph:Set("New content text")
-```
+-- Update only content
+Paragraph:Set(nil, "New content text", nil)
 
----
+-- Update everything
+Paragraph:Set("New Title", "New Content\nWith line breaks", "Right")
 
-## PParagraph
-
-Advanced paragraph with text alignment and line breaks.
-
-```lua
-local PParagraph = Tab:AddPParagraph("Title", "Line 1\\nLine 2\\nLine 3", "Center")
--- Alignment: "Left", "Center", "Right"
-```
-
-### Updating PParagraph
-
-```lua
-PParagraph:Set("New Title", "New Content\\nWith line breaks", "Left")
+-- Update only alignment
+Paragraph:Set(nil, nil, "Center")
 ```
 
 ---
@@ -187,7 +168,6 @@ PParagraph:Set("New Title", "New Content\\nWith line breaks", "Left")
 ## Button
 
 Creates a clickable button.
-
 ```lua
 local Button = Tab:AddButton({
     Name = "Button Name",
@@ -199,7 +179,6 @@ local Button = Tab:AddButton({
 ```
 
 ### Updating Button Text
-
 ```lua
 Button:Set("New Button Text")
 ```
@@ -209,7 +188,6 @@ Button:Set("New Button Text")
 ## Toggle
 
 Creates a toggle switch.
-
 ```lua
 local Toggle = Tab:AddToggle({
     Name = "Toggle Name",
@@ -218,16 +196,15 @@ local Toggle = Tab:AddToggle({
     Callback = function(Value)
         print("Toggle state:", Value)
     end,
-    Flag = "ToggleFlag", -- For saving
+    Flag = "ToggleFlag",
     Save = true
 })
 ```
 
 ### Updating Toggle
-
 ```lua
-Toggle:Set(true) -- Enable
-Toggle:Set(false) -- Disable
+Toggle:Set(true)
+Toggle:Set(false)
 ```
 
 ---
@@ -235,7 +212,6 @@ Toggle:Set(false) -- Disable
 ## Slider
 
 Creates a slider with customizable range.
-
 ```lua
 local Slider = Tab:AddSlider({
     Name = "Slider Name",
@@ -247,40 +223,30 @@ local Slider = Tab:AddSlider({
     Callback = function(Value)
         print("Slider value:", Value)
     end,
-    Flag = "SliderFlag", -- For saving
+    Flag = "SliderFlag",
     Save = true,
-    Block = true -- Enable/disable based on condition
+    Block = true
 })
 ```
 
 ### Slider Methods
-
 ```lua
--- Update value
 Slider:Set(75)
-
--- Change slider name
 Slider:SetName("New Slider Name")
-
--- Change max value
 Slider:SetMax(200)
-
--- Change min value
 Slider:SetMin(10)
 
--- Check if user is clicking slider
 if Slider.IsClicking then
     print("User is dragging slider")
 end
 ```
 
 ### Infinite Slider
-
 ```lua
 local InfiniteSlider = Tab:AddSlider({
     Name = "Infinite Slider",
     Min = 0,
-    Max = math.huge, -- Infinity
+    Max = math.huge,
     Default = 50,
     Increment = 1,
     ValueName = "value",
@@ -295,27 +261,25 @@ local InfiniteSlider = Tab:AddSlider({
 ```
 
 ### Dynamic Blocking
-
 ```lua
--- Block based on toggle state With Table(Use Module, Same GitHub btw)
 local BlockedSlider = Tab:AddSlider({
     Name = "Conditional Slider",
     Min = 0,
     Max = 100,
     Default = 50,
-    Block = {table, value}, -- Name of toggle flag
+    Block = {table, value},
     VarFunc = UModule.var,
     Callback = function(Value)
         print(Value)
     end
 })
 ```
+
 ## Dropdown
 
-Creates a dropdown menu with single or multiple selection.
+Creates a dropdown menu with single or multiple selection. Automatically releases focus when UI is hidden to prevent input bugs.
 
 ### Single Selection Dropdown
-
 ```lua
 local Dropdown = Tab:AddDropdown({
     Name = "Dropdown",
@@ -324,19 +288,18 @@ local Dropdown = Tab:AddDropdown({
     Callback = function(Value)
         print("Selected:", Value)
     end,
-    Flag = "DropdownFlag", -- For saving
+    Flag = "DropdownFlag",
     Save = true
 })
 ```
 
 ### Multi Selection Dropdown
-
 ```lua
 local MultiDropdown = Tab:AddDropdown({
     Name = "Multi Dropdown",
     Default = {},
     Multi = true,
-    Call = true, -- Callback on each selection
+    Call = true,
     Options = {"Option 1", "Option 2", "Option 3"},
     Callback = function(Values)
         print("Selected items:", table.concat(Values, ", "))
@@ -345,7 +308,6 @@ local MultiDropdown = Tab:AddDropdown({
 ```
 
 ### Searchable Dropdown
-
 ```lua
 local SearchDropdown = Tab:AddDropdown({
     Name = "Searchable Dropdown",
@@ -357,8 +319,14 @@ local SearchDropdown = Tab:AddDropdown({
 })
 ```
 
-### Grouped Dropdown
+**Note:** Searchable dropdowns now automatically release focus when:
+- UI is hidden (pressing toggle key)
+- Dropdown is closed
+- ESC key is pressed
 
+This prevents input bugs where typing would affect movement keys (WASD).
+
+### Grouped Dropdown
 ```lua
 local GroupedDropdown = Tab:AddDropdown({
     Name = "Grouped Dropdown",
@@ -375,7 +343,6 @@ local GroupedDropdown = Tab:AddDropdown({
 ```
 
 ### Dropdown with Icons
-
 ```lua
 local IconDropdown = Tab:AddDropdown({
     Name = "Icon Dropdown",
@@ -394,9 +361,7 @@ local IconDropdown = Tab:AddDropdown({
 ### Player Dropdown
 
 Automatically detects and displays player headshots.
-
 ```lua
--- Format: "PlayerName (DisplayName)"
 local PlayerDropdown = Tab:AddDropdown({
     Name = "Select Player",
     Options = {"Player1 (John)", "Player2 (Jane)"},
@@ -408,18 +373,10 @@ local PlayerDropdown = Tab:AddDropdown({
 ```
 
 ### Dropdown Methods
-
 ```lua
--- Update selected value (single)
 Dropdown:Set("Option 2")
-
--- Update selected values (multi)
 MultiDropdown:Set({"Option 1", "Option 3"})
-
--- Refresh options (keep existing)
 Dropdown:Refresh({"New Option 1", "New Option 2"}, false)
-
--- Refresh options (delete old)
 Dropdown:Refresh({"Completely New 1", "Completely New 2"}, true)
 ```
 
@@ -428,7 +385,6 @@ Dropdown:Refresh({"Completely New 1", "Completely New 2"}, true)
 ## Bind
 
 Creates a keybind.
-
 ```lua
 local Bind = Tab:AddBind({
     Name = "Keybind",
@@ -441,18 +397,17 @@ local Bind = Tab:AddBind({
             print("Key released!")
         end
     end,
-    Flag = "BindFlag", -- For saving
+    Flag = "BindFlag",
     Save = true
 })
 ```
 
 ### Hold Mode Bind
-
 ```lua
 local HoldBind = Tab:AddBind({
     Name = "Hold Key",
     Default = Enum.KeyCode.LeftShift,
-    Hold = true, -- Requires holding
+    Hold = true,
     Callback = function(IsHolding)
         if IsHolding then
             print("Holding key down")
@@ -464,9 +419,8 @@ local HoldBind = Tab:AddBind({
 ```
 
 ### Updating Bind
-
 ```lua
-Bind:Set(Enum.KeyCode.F) -- Change to F key
+Bind:Set(Enum.KeyCode.F)
 ```
 
 ---
@@ -474,13 +428,12 @@ Bind:Set(Enum.KeyCode.F) -- Change to F key
 ## Textbox
 
 Creates a text input field.
-
 ```lua
 local Textbox = Tab:AddTextbox({
     Name = "Textbox",
     Default = "Default text",
     TextDisappear = false,
-    BackGrountText = "Text",-- Default is "Input"
+    BackGrountText = "Text",
     Callback = function(Value)
         print("Text entered:", Value)
     end
@@ -492,7 +445,6 @@ local Textbox = Tab:AddTextbox({
 ## Colorpicker
 
 Creates a color picker.
-
 ```lua
 local Colorpicker = Tab:AddColorpicker({
     Name = "Color Picker",
@@ -500,13 +452,12 @@ local Colorpicker = Tab:AddColorpicker({
     Callback = function(Value)
         print("Selected color:", Value)
     end,
-    Flag = "ColorFlag", -- For saving
+    Flag = "ColorFlag",
     Save = true
 })
 ```
 
 ### Updating Colorpicker
-
 ```lua
 Colorpicker:Set(Color3.fromRGB(0, 255, 0))
 ```
@@ -516,7 +467,6 @@ Colorpicker:Set(Color3.fromRGB(0, 255, 0))
 ## SmartTheme
 
 Creates an intelligent theme generator that automatically calculates complementary colors.
-
 ```lua
 Tab:AddSmartTheme()
 ```
@@ -531,9 +481,7 @@ This adds:
 ## Using Flags
 
 Flags allow you to save and retrieve element values.
-
 ```lua
--- Create elements with flags
 Tab:AddToggle({
     Name = "Feature",
     Flag = "FeatureEnabled",
@@ -550,11 +498,9 @@ Tab:AddSlider({
     Callback = function(Value) end
 })
 
--- Access flag values
-print(OrionLib.Flags["FeatureEnabled"].Value) -- true/false
-print(OrionLib.Flags["SpeedValue"].Value) -- 0-100
+print(OrionLib.Flags["FeatureEnabled"].Value)
+print(OrionLib.Flags["SpeedValue"].Value)
 
--- Update via flags
 OrionLib.Flags["FeatureEnabled"]:Set(false)
 OrionLib.Flags["SpeedValue"]:Set(75)
 ```
@@ -572,41 +518,26 @@ When `SearchBar = true` in window config:
 - Real-time filtering
 
 ### Free Mouse Modes
-
 ```lua
--- In window config
-FreeMouse = true, -- Enables free mouse
+FreeMouse = true,
 
--- Create unlock mode dropdown
-Tab:FreeMouseDrp() -- Adds dropdown with "ThirdPerson" and "FreeMouse" options
+Tab:FreeMouseDrp()
 ```
 
 ### Destroying the GUI
-
 ```lua
--- Destroy specific window
 Window:Destroy()
-
--- Destroy entire library
 OrionLib:Destroy()
 ```
 
 ### Auto-Load Configuration
-
 ```lua
--- Initialize after creating all elements
 OrionLib:Init()
--- Automatically loads saved config for current game
 ```
 
 ### Manual Config Management
-
 ```lua
--- Save config
 SaveCfg(game.GameId)
-
--- Load config (requires reading saved file)
--- Configs are saved to ConfigFolder/GameId.txt
 ```
 
 ---
@@ -616,7 +547,6 @@ SaveCfg(game.GameId)
 ### Log Element
 
 Full-screen text display.
-
 ```lua
 local Log = Tab:AddLog("Large log text here")
 Log:Set("Updated log text")
@@ -624,24 +554,11 @@ Log:Set("Updated log text")
 
 ### Player Leave Detection (Dropdown)
 
-Player dropdowns automatically handle player leaving:
-
-```lua
-local PlayerDrop = Tab:AddDropdown({
-    Name = "Players",
-    Multi = true,
-    Options = {"Player1 (Display1)", "Player2 (Display2)"},
-    Callback = function(Value)
-        print(Value)
-    end
-})
--- Automatically removes players when they leave the game
-```
+Player dropdowns automatically handle player leaving and remove them from the list.
 
 ---
 
 ## Example Script
-
 ```lua
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fiiremax/Scripts/refs/heads/main/Loader.lua')))()
 
@@ -687,6 +604,7 @@ local PlayerDrop = MainTab:AddDropdown({
     Name = "Target Player",
     Default = "",
     Options = {"Player1", "Player2"},
+    Searchable = true,
     Callback = function(Value)
         print("Targeting:", Value)
     end
@@ -702,6 +620,8 @@ MainTab:AddButton({
         PlayerDrop:Refresh(players, true)
     end
 })
+
+MainTab:AddParagraph("Info", "This is a paragraph\nWith multiple lines", "Center")
 
 MainTab:AddBind({
     Name = "Toggle UI",
@@ -730,8 +650,8 @@ OrionLib:Init()
 3. **Use SearchBar** for better UX with many elements
 4. **Call OrionLib:Init()** at the end to load saved configs
 5. **Use Section** to organize elements logically
-6. **Multi dropdowns with Call = true** trigger callback on each selection change
-7. **Slider Block parameter** can dynamically enable/disable sliders based on conditions
+6. **Paragraph** automatically adjusts to window resize
+7. **Searchable dropdowns** prevent input bugs by auto-releasing focus
 
 ---
 
@@ -741,4 +661,6 @@ OrionLib:Init()
 - The library automatically manages theme colors based on selected theme
 - Player dropdowns automatically detect player format and display headshots
 - Search system works across all tabs simultaneously
-- Infinite sliders display "∞" when at maximum value          
+- Infinite sliders display "∞" when at maximum value
+- Paragraph elements automatically resize when window is resized
+- Searchable dropdowns release focus when UI is hidden to prevent WASD input bugs
