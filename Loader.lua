@@ -1742,57 +1742,18 @@ function OrionLib:MakeWindow(WindowConfig)
 				labelfunc:Set(Text, ToChangeColor, Position)
 				return labelfunc
 			end
-
-			function ElementFunction:AddParagraph(Text, Content)
+			
+			function ElementFunction:AddParagraph(Text, Content, Align)
 				Text = Text or "Text"
 				Content = Content or "Content"
-
+				Align = Align or "Left"
+				
 				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 30),
 					BackgroundTransparency = 0.7,
 					Parent = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
-						Size = UDim2.new(1, -12, 0, 14),
-						Position = UDim2.new(0, 12, 0, 10),
-						Font = Enum.Font.GothamBold,
-						Name = "Title"
-					}), "Text"),
-					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
-						Size = UDim2.new(1, -24, 0, 0),
-						Position = UDim2.new(0, 12, 0, 26),
-						Font = Enum.Font.GothamSemibold,
-						Name = "Content",
-						TextWrapped = true
-					}), "TextDark"),
-					AddThemeObject(MakeElement("Stroke"), "Stroke")
-				}), "Second")
-
-				Relem(_tabName, Text, ParagraphFrame)
-
-				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), function()
-					ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
-					ParagraphFrame.Size = UDim2.new(1, 0, 0, ParagraphFrame.Content.TextBounds.Y + 35)
-				end)
-
-				ParagraphFrame.Content.Text = Content
-
-				local ParagraphFunction = {}
-				function ParagraphFunction:Set(ToChange)
-					ParagraphFrame.Content.Text = ToChange
-				end
-				return ParagraphFunction
-			end
-			
-			function ElementFunction:AddPParagraph(text, Content, Align)
-				Content = Content:gsub("\\n", "\n")
-			
-				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-					Size = UDim2.new(1, 0, 0, 30),
-					BackgroundTransparency = 0.7,
-					Parent = ItemParent
-				}), {
-					AddThemeObject(SetProps(MakeElement("Label", text, 15), {
 						Size = UDim2.new(1, -12, 0, 14),
 						Position = UDim2.new(0, 12, 0, 10),
 						Font = Enum.Font.GothamBold,
@@ -1809,31 +1770,48 @@ function OrionLib:MakeWindow(WindowConfig)
 					}), "TextDark"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
-				Relem(_tabName, text, ParagraphFrame)
-				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), function()
-					ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
-					ParagraphFrame.Size = UDim2.new(1, 0, 0, ParagraphFrame.Content.TextBounds.Y + 35)
-				end)
-			
-				ParagraphFrame.Content.Text = Content
-				ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[Align]
-			
-				local ParagraphFunction = {}
-				function ParagraphFunction:Set(newtx, newcont, newalign)
-					if newtx then
-						ParagraphFrame.Title.Text = newtx
-					end
-					if newcont then
-						ParagraphFrame.Content.Text = newcont:gsub("\\n", "\n")
-					end
-					if newalign then
-						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalign]
-						ParagraphFrame.Title.TextXAlignment = Enum.TextXAlignment[newalign]
+				
+				Relem(_tabName, Text, ParagraphFrame)
+				
+				local function updtsz()
+					if ParagraphFrame and ParagraphFrame.Parent then
+						ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
+						ParagraphFrame.Size = UDim2.new(1, 0, 0, ParagraphFrame.Content.TextBounds.Y + 35)
 					end
 				end
-			
+				
+				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), updtsz)
+				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("TextBounds"), updtsz)
+				
+				local rsconn = AddConnection(MainWindow:GetPropertyChangedSignal("Size"), function()
+					task.wait()
+					updtsz()
+				end)
+				
+				AddConnection(ParagraphFrame.Destroying, function()
+					if rsconn and rsconn.Connected then
+						rsconn:Disconnect()
+					end
+				end)
+				
+				ParagraphFrame.Content.Text = Content
+				
+				local ParagraphFunction = {}
+				function ParagraphFunction:Set(newtext, newcont, newalin)
+					if newtext then
+						ParagraphFrame.Title.Text = newtext
+					end
+					if newcont then
+						ParagraphFrame.Content.Text = newcont
+					end
+					if newalin then
+						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
+						ParagraphFrame.Title.TextXAlignment = Enum.TextXAlignment[newalin]
+					end
+				end
 				return ParagraphFunction
 			end
+			
 			function ElementFunction:AddButton(ButtonConfig)
 				ButtonConfig = ButtonConfig or {}
 				ButtonConfig.Name = ButtonConfig.Name or "Button"
@@ -2453,9 +2431,9 @@ function OrionLib:MakeWindow(WindowConfig)
 				DropdownConfig.Grouped = DropdownConfig.Grouped or false
 				DropdownConfig.Icons = DropdownConfig.Icons or false
 				DropdownConfig.MaxHeight = DropdownConfig.MaxHeight or 200
+				DropdownConfig.PlrLeftNote = DropdownConfig.PlrLeftNote or false
 				DropdownConfig.Callback = DropdownConfig.Callback or function() end
 				DropdownConfig.Flag = DropdownConfig.Flag or nil
-				DropdownConfig.PlrLeftNote = DropdownConfig.PlrLeftNote or false
 				DropdownConfig.Save = DropdownConfig.Save or false
 			
 				local Dropdown = {
@@ -2494,6 +2472,12 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				local DdList = MakeElement("List")
 				local SrchBox, SrchCont, SrchTgl
+				
+				local function relfcs()
+					if DropdownConfig.Searchable and SrchBox and SrchBox:IsFocused() then
+						SrchBox:ReleaseFocus()
+					end
+				end
 			
 				if DropdownConfig.Searchable then
 					SrchTgl = AddThemeObject(SetChildren(SetProps(MakeElement("Button", Color3.fromRGB(255,255,255)), {
@@ -2604,6 +2588,23 @@ function OrionLib:MakeWindow(WindowConfig)
 				Relem(_tabName, DropdownConfig.Name, DdFrame)
 				AddConnection(DdList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 					DdCont.CanvasSize = UDim2.new(0, 0, 0, DdList.AbsoluteContentSize.Y)
+				end)
+				
+				local vconn = AddConnection(MainWindow:GetPropertyChangedSignal("Visible"), function()
+					if not MainWindow.Visible then
+						relfcs()
+						if Dropdown.Toggled then
+							Dropdown.Toggled = false
+							Dropdown.srchMode = false
+							Dropdown:UpdVis()
+						end
+					end
+				end)
+				
+				AddConnection(DdFrame.Destroying, function()
+					if vconn and vconn.Connected then
+						vconn:Disconnect()
+					end
 				end)
 				
 				local function CrtOpt(optData, group)
@@ -2726,6 +2727,7 @@ function OrionLib:MakeWindow(WindowConfig)
 							if DropdownConfig.Searchable and SrchBox then
 								SrchBox.Text = ""
 								Dropdown.srchTxt = ""
+								relfcs()
 							end
 							
 							Dropdown:UpdVis()
@@ -2916,6 +2918,10 @@ function OrionLib:MakeWindow(WindowConfig)
 						SrchCont.Visible = self.srchMode
 					end
 					
+					if not self.Toggled or not self.srchMode then
+						relfcs()
+					end
+					
 					local newPos = UDim2.new(0, 0, 0, 38 + totSrchH)
 					local newSz = UDim2.new(1, 0, 1, -(38 + totSrchH))
 					
@@ -2958,7 +2964,7 @@ function OrionLib:MakeWindow(WindowConfig)
 								SrchBox:CaptureFocus()
 							end)
 						else
-							SrchBox:ReleaseFocus()
+							relfcs()
 							if not self.srchMode then
 								SrchBox.Text = ""
 								self.srchTxt = ""
@@ -3141,6 +3147,10 @@ function OrionLib:MakeWindow(WindowConfig)
 						end
 					end
 					
+					if DropdownConfig.Searchable and self.srchTxt ~= "" then
+						FiltrOpts()
+					end
+					
 					if self.Toggled then
 						self:UpdVis()
 					end
@@ -3181,6 +3191,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					AddConnection(SrchBox:GetPropertyChangedSignal("Text"), function()
 						Dropdown.srchTxt = SrchBox.Text
 						FiltrOpts()
+						Dropdown:UpdVis()
 					end)
 			
 					AddConnection(SrchBox.Focused, function()
@@ -3201,6 +3212,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					if input.KeyCode == Enum.KeyCode.Escape then
 						Dropdown.Toggled = false
 						Dropdown.srchMode = false
+						relfcs()
 						Dropdown:UpdVis()
 					end
 				end)
@@ -3216,18 +3228,22 @@ function OrionLib:MakeWindow(WindowConfig)
 				if DropdownConfig.Flag then
 					OrionLib.Flags[DropdownConfig.Flag] = Dropdown
 				end
-
+			
 				table.insert(OrionLib.Dropdowns, Dropdown)
 				
 				if vgs and vgs.ps then
 					AddConnection(vgs.ps.PlayerAdded, function(plr)
 						Dropdown.isPDrop = DtctPDrop()
+						
+						if DropdownConfig.Searchable and Dropdown.srchTxt ~= "" then
+							FiltrOpts()
+						end
 					end)
 					
-					AddConnection(vgs.ps.PlayerRemoving, function(plr)
+					vgs.ps.PlayerRemoving:Connect(function(plr)
 						if not Dropdown.isPDrop then return end
 						
-						local pName = plr.DisplayName
+						local pName = plr.Name
 						
 						for i = #Dropdown.Options, 1, -1 do
 							local optTxt = type(Dropdown.Options[i]) == "table" and (Dropdown.Options[i].text or Dropdown.Options[i].name) or tostring(Dropdown.Options[i])
@@ -3257,18 +3273,24 @@ function OrionLib:MakeWindow(WindowConfig)
 							DropdownConfig.Callback(Dropdown.Value)
 						else
 							local currName = Dropdown.Value:match("^(.-) %(") or Dropdown.Value
-							if currName == pName and DropdownConfig.PlrLeftNote then
-								OrionLib:MakeNotification({
-									Name = "Selected Player Left!",
-									Content = pName .. " Left the Game.",
-									Image = "rbxassetid://7733911828",
-									Time = 5
-								})
+							if currName == pName then
+								if DropdownConfig.PlrLeftNote then
+									OrionLib:MakeNotification({
+										Name = "Selected Player left.",
+										Content = plr.DisplayName .. " left the Game.",
+										Image = "rbxassetid://7733911828",
+										Time = 5
+									})
+								end
+								Dropdown:Set("...")
 							end
-							Dropdown:Set("...")
 						end
-						
+			
 						Dropdown:UpdSel()
+			
+						if DropdownConfig.Searchable and Dropdown.srchTxt ~= "" then
+							FiltrOpts()
+						end
 						
 						if Dropdown.Toggled then
 							Dropdown:UpdVis()
