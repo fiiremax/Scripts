@@ -1,0 +1,10 @@
+{
+    "robloxLsp.diagnostics.neededFileStatus": {
+        "undefined-global": "Any"
+    },
+    "robloxLsp.diagnostics.disable": [
+        "undefined-global"
+    ],
+    "editor.minimap.autohide": "none",
+    "git.ignoreLimitWarning": true
+}

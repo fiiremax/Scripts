@@ -1,0 +1,729 @@
+# Orion Library Custom - Documentation
+
+## Introduction
+
+Orion Library Custom is an enhanced UI library for Roblox featuring advanced elements, dynamic search, theme generation, and more.
+
+---
+
+## Booting the Library
+```lua
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fiiremax/Scripts/refs/heads/main/Loader.lua')))()
+```
+
+---
+
+## Creating a Window
+```lua
+local Window = OrionLib:MakeWindow({
+    Name = "Title of the library",
+    ConfigFolder = "OrionTest",
+    SaveConfig = true,
+    HidePremium = false,
+    IntroEnabled = true,
+    IntroText = "Orion Library",
+    TagText = "Owner",
+    IntroIcon = "rbxassetid://8834748103",
+    FreeMouse = false,
+    Openkey = "RightShift",
+    ShowIcon = false,
+    Icon = "rbxassetid://8834748103",
+    CloseCallback = function()
+        -- Code to execute when GUI closes
+    end,
+    SearchBar = true,
+    IconColorChange = false
+})
+```
+
+### Configuring Window Name with Colors
+```lua
+Window:SetName(
+    {"Orion ", "#00FF00"},
+    {"Library", "#FF0000"}
+)
+```
+
+---
+### Configuring Window Icon with ID
+```lua
+Window:ChangeIcon("ID") 
+--or
+Window:ChangeIcon("rbxassetid://ID")
+```
+---
+
+## Creating a Tab
+```lua
+local Tab = Window:MakeTab({
+    Name = "Tab Name",
+    Icon = "rbxassetid://4483345875",
+    PremiumOnly = false
+})
+```
+
+---
+
+## Creating a Section
+```lua
+local Section = Tab:AddSection({
+    Name = "Section Name"
+})
+```
+
+---
+
+## Notifications
+```lua
+OrionLib:MakeNotification({
+    Name = "Title!",
+    Content = "Notification content goes here.",
+    Image = "rbxassetid://4384403532",
+    Time = 5
+})
+```
+
+---
+
+## Element Visibility & Lifecycle
+
+All elements returned by `Add*` functions support two universal methods: :toggle() and :remove().
+
+### toggle
+
+Hides or shows the element. When hidden, the space it occupied collapses automatically (UIListLayout behavior) and restores when shown again.
+
+```lua
+local Para = Tab:AddParagraph("Title", "Content")
+local Toggle = Tab:AddToggle({ Name = "My Toggle", Callback = function() end })
+local Button = Tab:AddButton({ Name = "My Button", Callback = function() end })
+
+Para:toggle()    -- hide (space collapses)
+Para:toggle()    -- show again (space restores)
+```
+
+### remove
+
+Permanently destroys the element and removes it from the search system. Cannot be undone.
+
+```lua
+local par = Tab:AddParagraph("9891926586", "Title", "Content")
+
+task.wait(2)
+par:remove()  -- destroyed, gone forever .,. f
+```
+
+### Supported Elements
+
+:toggle() and :remove() work on all elements:
+
+- `Tab:AddParagraph()`
+- `Tab:AddButton()`
+- `Tab:AddToggle()`
+- `Tab:AddSlider()`
+- `Tab:AddDropdown()`
+- `Tab:AddBind()`
+- `Tab:AddColorpicker()`
+- `Tab:AddLabel()`
+- `Tab:AddLog()`
+- `Tab:AddTextbox()`
+
+---
+
+## Label
+
+Creates a simple text label.
+```lua
+local Label = Tab:AddLabel("Label Text")
+```
+
+### Updating Label
+```lua
+Label:Set("New Text")
+```
+
+### Updating Label with Colors
+```lua
+Label:Set("Player Health: 100", {
+    ["Player"] = "#00FF00",
+    ["Health"] = "#FF0000",
+    ["100"] = "#FFFF00"
+})
+```
+
+---
+
+## ColorLabel
+
+Creates a label with custom color and alignment.
+```lua
+local ColorLabel = Tab:ColorLabel("Text", Color3.fromRGB(255, 0, 0), "Center")
+-- Position: "Left", "Center", "Right"
+```
+
+### Updating ColorLabel
+```lua
+ColorLabel:Set("New Text", Color3.fromRGB(0, 255, 0), "Right")
+```
+
+---
+## AddPBind
+
+Creates a Tiny TextBox X Y Z to change Positions.
+```lua
+tonumber -- for all types of numbers (if not valid number or letters it will be nil.)
+KeyTab:AddPbind({
+    Name = "Position",
+    DefaultX = "1",
+    DefaultY = "2",
+    DefaultZ = "3",
+    Callback = function(x, y, z)
+        print(tonumber(x), tonumber(y), tonumber(z))
+    end
+})
+```
+
+## Paragraph
+
+Creates a title with description. Supports player headshots, text alignment and line breaks with automatic window resize handling.
+
+### Without Player
+```lua
+local Paragraph = Tab:AddParagraph("Paragraph Title", "Paragraph Content", "Left")
+-- Alignment: "Left" (default), "Center", "Right"
+```
+
+### With Player ID
+```lua
+local Paragraph = Tab:AddParagraph("9891926586", "Paragraph Title", "Paragraph Content")
+```
+
+### With Line Breaks
+```lua
+local Paragraph = Tab:AddParagraph("Title", "Line 1\nLine 2\nLine 3", "Center")
+```
+
+### Updating Paragraph
+```lua
+Paragraph:Set(nil, "New content text", nil)
+Paragraph:Set("New Title", "New Content\nWith line breaks", "Right")
+Paragraph:Set(nil, nil, "Center")
+```
+
+---
+
+## Button
+
+Creates a clickable button.
+```lua
+local Button = Tab:AddButton({
+    Name = "Button Name",
+    Icon = "rbxassetid://3944703587",
+    Callback = function()
+        print("Button pressed!")
+    end    
+})
+```
+
+### Updating Button Text
+```lua
+Button:Set("New Button Text")
+```
+
+---
+
+## Toggle
+
+Creates a toggle switch.
+```lua
+local Toggle = Tab:AddToggle({
+    Name = "Toggle Name",
+    Default = false,
+    Color = Color3.fromRGB(9, 99, 195),
+    Callback = function(Value)
+        print("Toggle state:", Value)
+    end,
+    Flag = "ToggleFlag",
+    Save = true
+})
+```
+
+### Updating Toggle
+```lua
+Toggle:Set(true)
+Toggle:Set(false)
+```
+
+---
+
+## Slider
+
+Creates a slider with customizable range.
+```lua
+local Slider = Tab:AddSlider({
+    Name = "Slider Name",
+    Min = 0,
+    Max = 100,
+    Default = 50,
+    Increment = 1,
+    ValueName = "studs",
+    Callback = function(Value)
+        print("Slider value:", Value)
+    end,
+    Flag = "SliderFlag",
+    Save = true,
+    Block = true
+})
+```
+
+### Slider Methods
+```lua
+Slider:Set(75)
+Slider:SetName("New Slider Name")
+Slider:SetMax(200)
+Slider:SetMin(10)
+
+if Slider.IsClicking then
+    print("User is dragging slider")
+end
+```
+
+### Infinite Slider
+```lua
+local InfiniteSlider = Tab:AddSlider({
+    Name = "Infinite Slider",
+    Min = 0,
+    Max = math.huge,
+    Default = 50,
+    Increment = 1,
+    ValueName = "value",
+    Callback = function(Value)
+        if Value == math.huge then
+            print("Infinite!")
+        else
+            print("Value:", Value)
+        end
+    end
+})
+```
+
+### Dynamic Blocking
+```lua
+local BlockedSlider = Tab:AddSlider({
+    Name = "Conditional Slider",
+    Min = 0,
+    Max = 100,
+    Default = 50,
+    Block = {table, value},
+    VarFunc = UModule.var,
+    Callback = function(Value)
+        print(Value)
+    end
+})
+```
+
+## Dropdown
+
+Creates a dropdown menu with single or multiple selection. Automatically releases focus when UI is hidden to prevent input bugs.
+
+### Single Selection Dropdown
+```lua
+local Dropdown = Tab:AddDropdown({
+    Name = "Dropdown",
+    Default = "Option 1",
+    Options = {"Option 1", "Option 2", "Option 3"},
+    Callback = function(Value)
+        print("Selected:", Value)
+    end,
+    Flag = "DropdownFlag",
+    Save = true
+})
+```
+
+### Multi Selection Dropdown
+```lua
+local MultiDropdown = Tab:AddDropdown({
+    Name = "Multi Dropdown",
+    Default = {},
+    Multi = true,
+    Call = true,
+    Options = {"Option 1", "Option 2", "Option 3"},
+    Callback = function(Values)
+        print("Selected items:", table.concat(Values, ", "))
+    end
+})
+```
+
+### Searchable Dropdown
+```lua
+local SearchDropdown = Tab:AddDropdown({
+    Name = "Searchable Dropdown",
+    Options = {"Apple", "Banana", "Cherry", "Date", "Elderberry"},
+    Searchable = true,
+    Callback = function(Value)
+        print(Value)
+    end
+})
+```
+
+**Note:** Searchable dropdowns now automatically release focus when:
+- UI is hidden (pressing toggle key)
+- Dropdown is closed
+- ESC key is pressed
+
+This prevents input bugs where typing would affect movement keys (WASD).
+
+### Grouped Dropdown
+```lua
+local GroupedDropdown = Tab:AddDropdown({
+    Name = "Grouped Dropdown",
+    Grouped = true,
+    Options = {
+        ["Fruits"] = {"Apple", "Banana", "Orange"},
+        ["Vegetables"] = {"Carrot", "Broccoli", "Lettuce"},
+        ["Meats"] = {"Chicken", "Beef", "Pork"}
+    },
+    Callback = function(Value)
+        print(Value)
+    end
+})
+```
+
+### Dropdown with Icons
+```lua
+local IconDropdown = Tab:AddDropdown({
+    Name = "Icon Dropdown",
+    Icons = true,
+    Options = {
+        {text = "Home", icon = "rbxassetid://123456", value = "home"},
+        {text = "Settings", icon = "rbxassetid://789012", value = "settings"},
+        {text = "Exit", icon = "rbxassetid://345678", value = "exit"}
+    },
+    Callback = function(Value)
+        print(Value)
+    end
+})
+```
+
+### Player Dropdown
+
+Automatically detects and displays player headshots.
+```lua
+local PlayerDropdown = Tab:AddDropdown({
+    Name = "Select Player",
+    Options = {"Player1 (John)", "Player2 (Jane)"},
+    Callback = function(Value)
+        local playerName = Value:match("^(.-) %(") or Value
+        print("Selected player:", playerName)
+    end
+})
+```
+
+### Dropdown Methods
+```lua
+Dropdown:Set("Option 2")
+MultiDropdown:Set({"Option 1", "Option 3"})
+Dropdown:Refresh({"New Option 1", "New Option 2"}, false)
+Dropdown:Refresh({"Completely New 1", "Completely New 2"}, true)
+```
+
+---
+
+## Bind
+
+Creates a keybind.
+```lua
+local Bind = Tab:AddBind({
+    Name = "Keybind",
+    Default = Enum.KeyCode.E,
+    Hold = false,
+    Callback = function(Value)
+        if Value then
+            print("Key pressed!")
+        else
+            print("Key released!")
+        end
+    end,
+    Flag = "BindFlag",
+    Save = true
+})
+```
+
+### Hold Mode Bind
+```lua
+local HoldBind = Tab:AddBind({
+    Name = "Hold Key",
+    Default = Enum.KeyCode.LeftShift,
+    Hold = true,
+    Callback = function(IsHolding)
+        if IsHolding then
+            print("Holding key down")
+        else
+            print("Released key")
+        end
+    end
+})
+```
+
+### Updating Bind
+```lua
+Bind:Set(Enum.KeyCode.F)
+```
+
+---
+
+## Textbox
+
+Creates a text input field.
+```lua
+local Textbox = Tab:AddTextbox({
+    Name = "Textbox",
+    Default = "Default text",
+    TextDisappear = false,
+    BackGrountText = "Text",
+    Callback = function(Value)
+        print("Text entered:", Value)
+    end
+})
+```
+
+---
+
+## Colorpicker
+
+Creates a color picker.
+```lua
+local Colorpicker = Tab:AddColorpicker({
+    Name = "Color Picker",
+    Default = Color3.fromRGB(255, 0, 0),
+    Callback = function(Value)
+        print("Selected color:", Value)
+    end,
+    Flag = "ColorFlag",
+    Save = true
+})
+```
+
+### Updating Colorpicker
+```lua
+Colorpicker:Set(Color3.fromRGB(0, 255, 0))
+```
+
+---
+
+## SmartTheme
+
+Creates an intelligent theme generator that automatically calculates complementary colors.
+```lua
+Tab:AddSmartTheme()
+```
+
+This adds:
+- A colorpicker to choose base color
+- Automatic generation of 7 theme colors (Main, Second, Stroke, Divider, Text, TextDark, Accent)
+- A reset button
+
+---
+
+## Using Flags
+
+Flags allow you to save and retrieve element values.
+```lua
+Tab:AddToggle({
+    Name = "Feature",
+    Flag = "FeatureEnabled",
+    Save = true,
+    Callback = function(Value) end
+})
+
+Tab:AddSlider({
+    Name = "Speed",
+    Min = 0,
+    Max = 100,
+    Flag = "SpeedValue",
+    Save = true,
+    Callback = function(Value) end
+})
+
+print(OrionLib.Flags["FeatureEnabled"].Value)
+print(OrionLib.Flags["SpeedValue"].Value)
+
+OrionLib.Flags["FeatureEnabled"]:Set(false)
+OrionLib.Flags["SpeedValue"]:Set(75)
+```
+
+---
+
+## Advanced Features
+
+### Search System
+
+When `SearchBar = true` in window config:
+- Search across all tabs and elements
+- Automatically switches to the tab with most matches
+- Highlights matching elements
+- Real-time filtering
+
+### Free Mouse Modes
+```lua
+FreeMouse = true,
+
+Tab:FreeMouseDrp()
+```
+
+### Destroying the GUI
+```lua
+Window:Destroy()
+OrionLib:Destroy()
+```
+
+### Auto-Load Configuration
+```lua
+OrionLib:Init()
+```
+
+### Manual Config Management
+```lua
+SaveCfg(game.GameId)
+```
+
+---
+
+## Special Features
+
+### Log Element
+
+Full-screen text display.
+```lua
+local Log = Tab:AddLog("Large log text here")
+Log:Set("Updated log text")
+```
+
+### Player Leave Detection (Dropdown)
+
+Player dropdowns automatically handle player leaving and remove them from the list.
+
+---
+
+## Example Script
+```lua
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/fiiremax/Scripts/refs/heads/master/Scriptnew/GitHub/Scripts/Loader.lua')))() 
+
+local Window = OrionLib:MakeWindow({
+    Name = "My Custom UI",
+    SaveConfig = true,
+    ConfigFolder = "MyConfig",
+    SearchBar = true
+})
+
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345875"
+})
+
+local Section = MainTab:AddSection({
+    Name = "Features"
+})
+
+MainTab:AddToggle({
+    Name = "Enable ESP",
+    Default = false,
+    Callback = function(Value)
+        print("ESP:", Value)
+    end,
+    Flag = "ESPToggle",
+    Save = true
+})
+
+MainTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 200,
+    Default = 16,
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+    end,
+    Flag = "WalkSpeedSlider",
+    Save = true
+})
+
+local PlayerDrop = MainTab:AddDropdown({
+    Name = "Target Player",
+    Default = "",
+    Options = {"Player1", "Player2"},
+    Searchable = true,
+    Callback = function(Value)
+        print("Targeting:", Value)
+    end
+})
+
+MainTab:AddButton({
+    Name = "Refresh Players",
+    Callback = function()
+        local players = {}
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            table.insert(players, player.Name)
+        end
+        PlayerDrop:Refresh(players, true)
+    end
+})
+
+MainTab:AddParagraph("Info", "This is a paragraph\nWith multiple lines", "Center")
+
+MainTab:AddBind({
+    Name = "Toggle UI",
+    Default = Enum.KeyCode.RightShift,
+    Callback = function() end
+})
+
+MainTab:AddColorpicker({
+    Name = "ESP Color",
+    Default = Color3.fromRGB(255, 0, 0),
+    Callback = function(Value)
+        print("Color:", Value)
+    end,
+    Save = true
+})
+
+-- Toggle & Remove example
+local info = MainTab:AddParagraph("9891926586", "Info", "Some content here")
+
+task.wait(3)
+info:toggle()  -- hide
+
+task.wait(3)
+info:toggle()  -- show again
+
+task.wait(3)
+info:remove()  -- destroy permanently
+
+OrionLib:Init()
+```
+
+---
+
+## Tips
+
+1. **Always use Flags** for elements you want to save
+2. **Set Save = true** to enable auto-save
+3. **Use SearchBar** for better UX with many elements
+4. **Call OrionLib:Init()** at the end to load saved configs
+5. **Use Section** to organize elements logically
+6. **Paragraph** automatically adjusts to window resize
+7. **Searchable dropdowns** prevent input bugs by auto-releasing focus
+8. **toggle** hides elements without losing their position in the layout
+9. **remove** permanently destroys the element — use only when you don't need it back
+
+---
+
+## Notes
+
+- Configuration files are stored in `workspace/[ConfigFolder]/[GameId].txt`
+- The library automatically manages theme colors based on selected theme
+- Player dropdowns automatically detect player format and display headshots
+- Search system works across all tabs simultaneously
+- Infinite sliders display "∞" when at maximum value
+- Paragraph elements automatically resize when window is resized
+- Searchable dropdowns release focus when UI is hidden to prevent WASD input bugs
+- :toggle() uses `Visible = false` which makes UIListLayout collapse the space automatically
+- :remove() also cleans up the element from the internal search system
