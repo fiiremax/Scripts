@@ -5,6 +5,7 @@
     "robloxLsp.diagnostics.disable": [
         "undefined-global"
     ],
-    "editor.minimap.autohide": "none",
-    "git.ignoreLimitWarning": true
+    "editor.minimap.autohide": "mouseover",
+    "git.ignoreLimitWarning": true,
+    "editor.minimap.enabled": true
 }

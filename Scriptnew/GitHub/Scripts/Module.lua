@@ -578,16 +578,24 @@ function UModule.wfc(...)
     
     if not timeout then
         local child
-        repeat
-            child = parent:FindFirstChild(name)
-            if child then return child end
-            task.wait()
-        until child
+        if not parent:FindFirstChild(name) then
+            repeat
+                child = parent:FindFirstChild(name)
+                if child then return child end
+                task.wait()
+            until child
+        else
+            return parent:FindFirstChild(name)
+        end
         return child
     end
     
     local startTime = tick()
     local child
+
+    if parent:FindFirstChild(name) then
+        return parent:FindFirstChild(name)
+    end
     
     repeat
         child = parent:FindFirstChild(name)

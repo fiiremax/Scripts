@@ -42,12 +42,12 @@ var("Remotes", {
     setowner = var("RS")["GrabEvents"]["SetNetworkOwner"],
     dgl      = var("RS")["GrabEvents"]["DestroyGrabLine"],
     cgl      = var("RS")["GrabEvents"]["CreateGrabLine"],
+    egl      = var("RS")["GrabEvents"]["ExtendGrabLine"],
     dt       = var("RS")["MenuToys"]["DestroyToy"],
-    use      = var("RS")["HoldEvents"]["Use"],
+    use      = var("RS")["HoldEvents"]["Use"], 
     rr       = var("CE")["RagdollRemote"],
     strg     = var("CE")["Struggle"]
 })
-
 
 var("ov", {
     char  = var("p").Character or var("p").CharacterAdded:Wait(),
@@ -63,6 +63,7 @@ var("DropsI", {})
 var("DropsO", {})
 var("Drops", {})
 var("paths", {})
+var("Conns", {})
 var("Lists", {})
 var("v", {})
 
@@ -174,6 +175,10 @@ function dssetowner(part, range, mode, callback)
             setowner(part)
             task.wait(0.02)
         end
+
+        if callback then
+            callback()
+        end
     else
         local origPos = hrp.CFrame
         task.wait(0.03)
@@ -192,6 +197,20 @@ function dssetowner(part, range, mode, callback)
     end
     
     stop = true
+end
+--//
+function hdrem(b, mode)
+    if not b or not mode then return end
+    local toy = b:WaitForChild("HoldPart")
+    task.spawn(function()
+        if mode == "Hold" then 
+            toy:WaitForChild("HoldItemRemoteFunction", 2):InvokeServer(b, var("ov").char)
+        elseif mode == "Drop" then
+            toy:WaitForChild("DropItemRemoteFunction", 2):InvokeServer(b, CFrame.new(0, 60000, 0), Vector3.new(0, 0, 0))
+        elseif mode == "Perm" then
+            toy:WaitForChild("DropItemRemoteFunction", 2):InvokeServer(b, MBP("HumanoidRootPart").Position + Vector3.new(0, 13, 20), nil)
+        end
+    end)
 end
 --//
 function GucciLoop()
@@ -249,6 +268,12 @@ pcall(function()
         end
     end
 end)
+--//
+if var("RS").GrabEvents:FindFirstChild("EndGrabEarly") then
+    local rm = var("RS").GrabEvents.EndGrabEarly:Clone()
+    rm.Parent = var("RS").GrabEvents.EndGrabEarly.Parent
+    var("RS").GrabEvents.EndGrabEarly:Destroy()
+end
 --//
 var("Toggle").Isowner = false
 if var("p").Name == "Anti_Cheatbf" then var("Toggle").Isowner = true end
@@ -324,7 +349,7 @@ function bringp(p, mode)
     if not p then return end
     dssetowner(p.Torso, 24, 3, function()
         task.spawn(function()
-            repeat task.wait() until verify(p.Head, 2) or not p
+            repeat task.wait() until verify(p.Head) or not p
             p.Torso.CFrame = MBP("HumanoidRootPart").CFrame + (MBP("HumanoidRootPart").CFrame.LookVector * 5)
             p.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
         end)
@@ -336,8 +361,10 @@ end
 
 function UPDDrops()
     for _, dp in pairs(var("Drops")) do
-        if dp then
+        if dp and not dp.tg then
             dp:Refresh(GPNames(), true)  
+        else
+            dp:Refresh(mwtlist(nil, "Out"), true)
         end
     end
     for _, dp in pairs(var("DropsI")) do
@@ -607,38 +634,53 @@ function gpd()
 end
 
 function AntiLagF(val)
-    local scp = p("CharacterAndBeamMove", var("p").PlayerScripts)
-    if scp then
-        scp.Disabled = val
-        if scp.Disabled then
+    p("CharacterAndBeamMove", var("p").PlayerScripts).Disabled = val
+    if p("CharacterAndBeamMove", var("p").PlayerScripts).Disabled then
+        tasak.spawn(function()
             for _, t in ipairs(MBP("Humanoid").Animator:GetPlayingAnimationTracks()) do
                 if t.Animation.AnimationId:find("8194033993") then
                     t:Stop()
                 end
             end
             gpd()
-        end
+        end)
     end
 end
 --//
 local AntiGrabDrp = nil
 var("Toggle").AntiLag = false
-local tmr = 0
+local tmr, gtmr = 0, 0
+
+cm(game:GetService("ReplicatedStorage").GrabEvents.CreateGrabLine, "OnClientEvent", function(plr)
+    local name = typeof(plr) == "Instance" and plr.DisplayName or tostring(plr)
+    var("Vars", "gcach" .. name, (var("gcach" .. name) or 0) + 1)
+end, "grbspm")
 
 cm(var("RunS"), "RenderStepped", function(dt)
-	if fps() < 20 then
+	if fps() < 10 then
 		tmr += dt
-		
-		if tmr >= 0.5 and not var("Toggle").AntiLag then
-			if AntiGrabDrp then
-				AntiGrabDrp:Set("Lag", true)
-			else
-				AntiLagF(true)
+		if tmr >= 0.2 and not var("Toggle").AntiLag then
+			if AntiGrabDrp then AntiGrabDrp:Set("Lag", true) else AntiLagF(true) end
+			local tpplr, tcnt = nil, 0
+			for k, v in pairs(var("Vars", "ref")) do
+				if k:find("gcach") and v > tcnt then tpplr, tcnt = k:gsub("gcach", ""), v end
 			end
-            notify("Note!", "Lag Detected, Anti Lag Enabled")
+			if tpplr then
+				notify("Lag Detected!", tpplr .. " is causing lag", nil, 8)
+			else
+				notify("Note!", "Lag Detected, Anti Lag Enabled")
+			end
 		end
 	else
 		tmr = 0
+	end
+
+	gtmr += dt
+	if gtmr >= 1 then
+		gtmr = 0
+		for k in pairs(var("Vars", "ref")) do
+			if k:find("gcach") then var("Vars", "ref")[k] = nil end
+		end
 	end
 end, "AutoAntiLag")
 --//
@@ -1109,10 +1151,16 @@ cm(var("p").PlayerGui.ControlsGui.ToggleControlsGuiVisibility, "Event", function
     end
 end, "gcctgcnn")
 
-function pins(item)
+function pins(item, rm)
     task.spawn(function()
         if not item then return end
         local ptPart = item:WaitForChild("HumanoidRootPart", 1)
+        if rm then
+            if ptPart:FindFirstChild("velup") then
+                ptPart.velup:Destroy()
+            end
+            return
+        end
         local bv = Instance.new("BodyVelocity")
         bv.Name = "velup"
         bv.Velocity = Vector3.new(0, 99e20, 0)
@@ -1122,36 +1170,114 @@ function pins(item)
 end
 
 var("Toggle").BKgc = true
+if not _G.Brkhs then
+    _G.Brkhs = false
+end
+
+function gtcplot()
+    if var("p").InPlot.Value then
+        local nms = {
+            ["Green House"]   = "Plot1",
+
+            ["Red House"]     = "Plot2",
+            ["Purple House"]  = "Plot3",
+            ["Blue House"]    = "Plot4",
+            ["Chinese House"] = "Plot5"
+        }
+    
+        for nm, cf in pairs(var("Lists").Loc2) do
+            if nms[nm] then
+                if (MBP("HumanoidRootPart").Position - cf.Position).Magnitude < 150 then
+                    return workspace["PlotItems"][nms[nm]]
+                end
+            end
+        end
+    end
+end
 
 function GucciAnti()
     local hum = MBP("Humanoid")
     local hrp = MBP("HumanoidRootPart")
     if not hum or not hrp then return end
-    
     var("Toggle").tGucciAnti = true 
     task.spawn(function()
         var("Remotes").strg:FireServer()
     end)
     timer("gccrandmnm", 5)
     timer("gucciprep", 3)
+    local fl
+    if var("p").InOwnedPlot.Value then
+        fl = gtcplot()
+    end
+    function spwn(mode)
+        if mode then
+            if fl then
+                pins(fl:FindFirstChild("CreatureBlobman"), true)
+                fl:FindFirstChild("CreatureBlobman").HumanoidRootPart.Anchored = true
+                fl:FindFirstChild("CreatureBlobman").HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+                fl:FindFirstChild("CreatureBlobman").HumanoidRootPart.CFrame = MBP("HumanoidRootPart").CFrame + (MBP("HumanoidRootPart").CFrame.LookVector * 5)
+                fl:FindFirstChild("CreatureBlobman").HumanoidRootPart.Anchored = false
+                task.wait(ping()/900)
+                return
+            end
+            var("RS").MenuToys.DestroyToy:FireServer(inpast("CreatureBlobman"))
+            task.wait(ping()/900)
+            spwn()
+            return
+        end
+        if var("ov").char.Parent == workspace then
+            task.spawn(function()
+                var("RS").MenuToys.SpawnToyRemoteFunction:InvokeServer("CreatureBlobman", hrp.CFrame * CFrame.new(0, 1000, 0), Vector3.new(0, 0, 0))
+            end)
+        else
+            if not var("p").InOwnedPlot.Value then
+                if _G.Brkhs then
+                    local h = MBP("HumanoidRootPart").CFrame
+                    
+                    MBP("HumanoidRootPart").CFrame = CFrame.new(0, 10, 0)
+                    repeat task.wait() until var("p").InPlot.Value == false
+                    
+                    SICF("CreatureBlobman", h)
+                    onhs = true
+                    MBP("HumanoidRootPart").CFrame = h
+                else
+                    notify("Note!", "Need To break barrier.")
+                end
+            else
+                SICF("CreatureBlobman", nil, "Front")
+            end
+
+        end
+        task.wait(ping()/900)
+    end
 
     MBP("Humanoid"):SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-    if not inpast("CreatureBlobman") then
-        task.spawn(function()
-            var("RS").MenuToys.SpawnToyRemoteFunction:InvokeServer("CreatureBlobman", hrp.CFrame * CFrame.new(0, 1000, 0), Vector3.new(0, 0, 0))
-        end)
+    if fl then
+        if not fl:FindFirstChild("CreatureBlobman") then
+            spwn()
+        else 
+            spwn(true)
+        end
     else
-        var("RS").MenuToys.DestroyToy:FireServer(inpast("CreatureBlobman"))
-        task.spawn(function()
-            var("RS").MenuToys.SpawnToyRemoteFunction:InvokeServer("CreatureBlobman", hrp.CFrame * CFrame.new(0, 1000, 0), Vector3.new(0, 0, 0))
-        end)
-        task.wait(ping()/900)
+        if not inpast("CreatureBlobman") then
+            spwn()
+        else 
+            spwn(true)
+        end
     end
     var("Valores").autoguccipos = hrp.CFrame
 
     local blb
-    repeat task.wait() until inpast("CreatureBlobman") or not timer("gucciprep")
-    blb = inpast("CreatureBlobman")
+    if not fl then
+        repeat task.wait() until inpast("CreatureBlobman") or not timer("gucciprep")
+        blb = inpast("CreatureBlobman")
+    else
+        print("AA")
+        print(fl)
+        repeat task.wait() until fl:FindFirstChild("CreatureBlobman") or not timer("gucciprep")
+        print("BB")
+        blb = fl:FindFirstChild("CreatureBlobman")
+    end
     if not blb then return end
     task.spawn(function()
         repeat
@@ -1163,21 +1289,22 @@ function GucciAnti()
     local seat
     repeat task.wait() until p("VehicleSeat", blb) or not timer("gucciprep")
     seat = p("VehicleSeat", blb)
-    if not inpast("CreatureBlobman") or not seat then return end
+    if blb.Parent == nil or seat.Parent == nil then return end
     task.spawn(function()
         timer("Guccitmr", 2)
     end)
-    repeat
-        if not inpast("CreatureBlobman") or not seat.Parent then break end
+    repeat 
+        if blb.Parent == nil or not seat.Parent then break end
         task.spawn(function()
             seat:Sit(hum)
         end)
         
         if fps() >= 180 then task.wait(0.02) else task.wait(0.04) end
-    until seat.Occupant == MBP("Humanoid") and inpast("CreatureBlobman") or not seat.Parent.Parent == var("ov").inv or not timer("Guccitmr")
+    until seat.Occupant == MBP("Humanoid") and blb or not seat.Parent == nil or not timer("Guccitmr")
     var("Toggle").Autott = true
     var("Toggle").tGucciAnti = false
     var("Toggle").Autott = false
+    pins(blb)
 
     task.spawn(function()
         if var("Valores").autoguccipos and hrp then
@@ -1200,7 +1327,6 @@ function GucciAnti()
                 end
                 cm("gccsocv", "disc")
             end)
-            pins(inpast("CreatureBlobman"))
         end
     end)
 end
@@ -1377,7 +1503,7 @@ function bring()
 end
 --//
 var("Valores").Ttle = 1
-local lkicktg = nil
+local lpd2 = nil
 
 function lkick(on, p)
     if not p then return end
@@ -1385,7 +1511,7 @@ function lkick(on, p)
     cm("kickconn", "disc")
 
     if not var("Toggle").lkick then
-        if p then
+        if p and p.Character.HumanoidRootPart then
             Alpos(false, p)
         end
         cm("kickconn", "disc")  
@@ -1398,18 +1524,20 @@ function lkick(on, p)
     end
     task.spawn(function()
         repeat 
-            FMC(15, function(m)
-                if m.Name == "NinjaKunai" or m.Name == "NinjaShuriken" and m.Parent ~= var("ov").inv then
-                    local sp = m:FindFirstChild("SoundPart")
-                    if sp then
-                        setowner(sp, "Safe")
+            if p.Character.HumanoidRootPart then 
+                FMC(15, function(m)
+                    if m.Name == "NinjaKunai" or m.Name == "NinjaShuriken" and m.Parent ~= var("ov").inv then
+                        local sp = m:FindFirstChild("SoundPart")
+                        if sp then
+                            setowner(sp, "Safe")
+                        end
                     end
-                end
-            end, p.Character.HumanoidRootPart)
+                end, p.Character.HumanoidRootPart)
+            end
             task.wait(0.1)
         until not var("Toggle").lkick or not p
     end)
-    if not var("Toggle").lkick then lkicktg(on, p) end
+    if not var("Toggle").lkick then Alpos(on, p) end
     var("Toggle").lkick2 = true 
     Alpos(true, p, Vector3.new(0, 20, 0))
     task.wait(0.1)
@@ -1419,7 +1547,7 @@ function lkick(on, p)
     task.wait(0.1)
     local ly = nil
     local brgg = false
-    if not var("Toggle").lkick then lkicktg(on, p) end
+    if not var("Toggle").lkick then Alpos(on, p) end
         
     cm(var("RunS"), "RenderStepped", function()
         if fps() >= 400 and not var("Toggle").tmrrr then
@@ -1440,9 +1568,9 @@ function lkick(on, p)
                 end
             end
             cm("kickconn", "disc")
-        elseif not var("ps"):FindFirstChild(p.Name) and lkicktg and var("Toggle").lkick then
+        elseif not var("ps"):FindFirstChild(p.Name) and lpd2 and var("Toggle").lkick then
             notify("Note!", p.DisplayName .. " Kicked, Turning Off")
-            lkicktg:Set(false)
+            lpd2:Set(false)
             cm("kickconn", "disc")
         end
         if p.Character.Parent ~= workspace then     
@@ -1594,6 +1722,7 @@ end
 --//
 function gblob(mode)
     if mode == 2 then
+        timer("gbst", 0.3)
         if MBP("Humanoid").SeatPart then
             if MBP("Humanoid").SeatPart.Parent.Name == "CreatureBlobman" then return end
             MBP("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
@@ -1604,9 +1733,9 @@ function gblob(mode)
         end
         SICF("CreatureBlobman", nil, "Front")
         repeat task.wait() until inpast("CreatureBlobman")
-        task.wait(ping()/900)
         wfc("VehicleSeat", inpast("CreatureBlobman")):Sit(MBP("Humanoid"))
-            
+        task.wait(ping()/900)
+        repeat task.wait() until wfc("VehicleSeat", inpast("CreatureBlobman")).Occupant == MBP("Humanoid") or not timer("gbst")
         return
     end
     if not MBP("Humanoid") then return false end
@@ -1639,6 +1768,41 @@ function firegrb(blb, hrp, mode, rght)
             end)
         end
     end)
+end
+
+function delblob(char1, cb)
+    local a = nil
+    if char1:IsA("Model") then
+        a = char1
+    else
+        a = char1.Character
+    end
+    if not a.Humanoid.SeatPart then
+        cb(a) 
+        return
+    end
+    
+    local seat = a.Humanoid.SeatPart
+    seat.AssemblyRootPart.CFrame = CFrame.new(0, -49000, 2000)
+
+    repeat 
+        task.wait()  
+    until seat.AssemblyRootPart.ReceiveAge == 0 
+    
+    repeat
+        firegrb(gblob(), a.HumanoidRootPart, "grb", true)
+        firegrb(gblob(), a.HumanoidRootPart, "perm", true)
+        task.wait(0.1)
+        seat.AssemblyRootPart.AssemblyLinearVelocity = Vector3.new(0, -50000, 0)
+    until not a.Humanoid.SeatPart
+    
+    if a.Humanoid.SeatPart then
+        permown(var("BPDrod"), function()
+            delblob(char1, cb)
+        end)
+    else
+        cb(a)
+    end
 end
 
 function permown(plr, callback, inst)
@@ -1726,13 +1890,11 @@ cm("WCA", "Add", function(i)
     end)  
 end)
 --//
-var("Toggle").BreakedHs = false
-
 function fbexp()
     cm(workspace, "ChildAdded", function(i)
-        if var("Toggle").BreakedHs then cm("fbexpconn", "disc") end
+        if _G.Brkhs then cm("fbexpconn", "disc") end
         if i.Name == "Part" and (i.Position - Vector3.new(263.4, -4.79, 466.8)).Magnitude <= 2 then
-            var("Toggle").BreakedHs = true
+           _G.Brkhs = true
             notify("Note!", "Destroyed Houses Barrier")
             for _, i in pairs(workspace.Plots:GetChildren()) do
                 for _, i in pairs(i.Barrier:GetChildren()) do
@@ -1757,7 +1919,7 @@ function breakhouse(mode)
     repeat
         SICF("BallSnowball", CFrame.new(263.5, -4.5, 486.9))
         repeat task.wait() until var("p").CanSpawnToy.Value
-    until var("Toggle").BreakedHs or not timer("brkhs")
+    until _G.Brkhs or not timer("brkhs")
 end
 --//
 var("Valores").WhtList = {}
@@ -1809,107 +1971,146 @@ function mwtlist(plr, mode, drop)
 end
 --//
 function brkowngc()
-    timer("stlim", 5)
-    for i=1, 10 do
-        task.spawn(function()
-            MBP("Humanoid").Sit = true
-        end)
-        repeat task.wait(0.005) until MBP("Humanoid").Sit == true or not timer("stlim")
-        MBP("Humanoid").Sit = false
-    end
-    repeat task.wait() until not MBP("Humanoid").Ragdolled.Value
+    task.spawn(function()
+        timer("stlim", 5)
+        
+        for i=1, 10 do
+            task.spawn(function()
+                MBP("Humanoid").Sit = true
+            end)
+            repeat task.wait() until MBP("Humanoid").Sit == true or not timer("stlim")
+            MBP("Humanoid").Sit = false
+        end
+        repeat task.wait() until not MBP("Humanoid").Ragdolled.Value
+    end)
+    task.wait(0.3)
 end
 --//
 function tpprt()
-    local part = FINF()
-
-    if ippp(part) then return end
-    local pt
-    local pt2 
-    if p("Humanoid", part.Parent) or p("HumanoidCreature", part.Parent) then
-        pt = p("Head", part.Parent)
-        if p("HumanoidCreature", part.Parent) then
-            pt2 = p("HumanoidRootPart", part.Parent)
+    task.spawn(function()
+        local part = FINF()
+    
+        if ippp(part) then return end
+        local pt
+        local pt2 
+        if p("Humanoid", part.Parent) or p("HumanoidCreature", part.Parent) then
+            pt = p("Head", part.Parent)
+            if p("HumanoidCreature", part.Parent) then
+                pt2 = p("HumanoidRootPart", part.Parent)
+            end
+        else
+            pt = part
         end
-    else
-        pt = part
-    end
-
-    if not pt then return end
-    dssetowner(pt2 and pt2 or pt, nil, 3)
-    repeat task.wait() until verify(pt, 2)
-    pt.CFrame = var("Lists").Loc2[var("Valores").tpprtloc]
+    
+        if not pt then return end
+        dssetowner(pt2 and pt2 or pt, nil, 3)
+        repeat 
+            task.wait()
+            if IsAround(pt, 30) then
+                setowner(pt, "Safe")
+            end
+        until verify(pt, 2)
+        pt.CFrame = var("Lists").Loc2[var("Valores").tpprtloc]
+    end)
 end
 --//
-local akcf = CFrame.new(0, 0.1, 0.322, 0, 0, -1, 0, 1, 0, 1, 0, 0)
-local akang = CFrame.Angles(0, 0, 190)
+var("Toggle").AntiKick = false
 
-function antikick()
-    function hdlsh(mdl) 
-        if not mdl then return end
-        repeat 
-            task.wait(0.05)
-            if not mdl:FindFirstChild("StickyPart") then break end
-            setowner(wfc("StickyPart", inpast("NinjaShuriken")), "Safe")
-        until verify(wfc("StickyPart", inpast("NinjaShuriken")), 2) or not var("Toggle").AntiKicktg
-        if not verify(wfc("StickyPart", inpast("NinjaShuriken")), 2) then return end
-        if not var("Toggle").AntiKicktg then return end
-        SPE(wfc("StickyPart", inpast("NinjaShuriken")), MBP("HumanoidRootPart")["FirePlayerPart"], akcf, akang)
-        repeat 
-            task.wait() 
-            if not var("Toggle").AntiKicktg then break end
-            if not mdl:FindFirstChild("StickyPart") then break end
-        until not p("StickyPart", mdl).StickyWeld.Part1 == MBP("HumanoidRootPart")["FirePlayerPart"]
+local akickcf = CFrame.new(0, 0.1, 0.322, 0, 0, -1, 0, 1, 0, 1, 0, 0)
+local akickang = CFrame.Angles(0, 0, 190)
 
+function AntiKick()
+---@diagnostic disable-next-line: undefined-global
+    function shspwn()
+        if MBP("Humanoid"):GetState() == Enum.HumanoidStateType.Dead or not var("Toggle").AntiKick then
+            var("Remotes").dt:FireServer(inpast("NinjaShuriken"))
+            return 
+        end
         task.spawn(function()
-            repeat
-                task.wait()
-                if not var("Toggle").AntiKicktg then break end
-                if not mdl:FindFirstChild("StickyPart") then break end
-                if not IsAround(p("StickyPart", mdl, 0.3), 5) or not verify(p("StickyPart", mdl, 0.3)) then break end
+            if inpast("NinjaShuriken") then
+                local sh = inpast("NinjaShuriken")
+                local sp = sh:WaitForChild("StickyPart")
+                local pw = sp:FindFirstChild("PartOwner")
+                
+                if pw and pw.Value == var("p").Name then 
+                    SPE(p("StickyPart", sh, 2), MBP("HumanoidRootPart")["FirePlayerPart"], akickcf, akickang)
+                    task.spawn(function()
+                        repeat
+                            task.wait()
+                            local k = inpast("NinjaShuriken")
+                            if not k then break end
+                            
+                            local sp = k:FindFirstChild("StickyPart")
+                            if not sp then break end
+                            
+                            local po = sp:FindFirstChild("PartOwner")
+                            if not po then break end
 
-            until not var("Toggle").AntiKicktg or not mdl.Parent == var("ov").Parent
-            if var("Toggle").AntiKicktg then
-                antikick()
+                            if not IsAround(sp, 5) then
+                                break
+                            end 
+                            
+                            if po.Value ~= var("p").Name then break end
+                            if not var("Toggle").AntiKick then break end
+                            if MBP("Humanoid"):GetState() == Enum.HumanoidStateType.Dead then break end
+                        until false
+                        AntiKick()
+                    end)
+                else
+                    var("Remotes").dt:FireServer(sh)
+                    var("ov").inv.ChildRemoved:Wait()
+                    AntiKick()
+                end
+            else
+                if var("ov").char.Parent ~= workspace then
+                    repeat task.wait() until var("ov").char.Parent == workspace
+                    if MBP("Humanoid"):GetState() == Enum.HumanoidStateType.Dead then return end
+                end
+                
+                var("ov").inv.ChildAdded:Once(function(i)
+                    if not var("Toggle").AntiKick then return end
+                    if i.Name == "NinjaShuriken" then
+                        local sp = i:WaitForChild("StickyPart", 3)   
+                        if sp then
+                            repeat 
+                                task.wait(0.05)
+                                setowner(sp)    
+                            until (sp:FindFirstChild("PartOwner") and sp["PartOwner"].Value == var("p").Name) or not var("Toggle").AntiKick  or not IsAround(sp, 30)
+                            
+                            if sp:FindFirstChild("PartOwner") and sp["PartOwner"].Value == var("p").Name then
+                                AntiKick()
+                            else
+                                var("Remotes").dt:FireServer(i)
+                                task.wait(0.5)
+                                if var("Toggle").AntiKick then
+                                    AntiKick()
+                                end
+                            end
+                        end
+                    end
+                end)
+                repeat
+                    SICF("NinjaShuriken", nil, "Head")
+                    task.wait(0.1)
+                until inpast("NinjaShuriken") or not var("Toggle").AntiKick
             end
         end)
     end
-
-    if inpast("NinjaShuriken") then
-        var("Remotes").dt:FireServer(inpast("NinjaShuriken"))
-        repeat task.wait() until not inpast("NinjaShuriken") or not var("Toggle").AntiKicktg
-    end
-
-    var("ov").inv.ChildAdded:Once(function(i)
-        if i.Name == "NinjaShuriken" and var("Toggle").AntiKicktg then
-            hdlsh(i)
-        end
-    end)
-    repeat
-        task.spawn(function()
-            SICF("NinjaShuriken", nil, "Head")
-        end)
-        task.wait(0.05)
-        if not var("ov").char.Parent == workspace then
-            repeat task.wait() until MBP("Torso").Parent == workspace
-        end
-    until inpast("NinjaShuriken") or not var("Toggle").AntiKicktg
+    shspwn()
 end
-
-cm("CharAppLoad", "Add", function()
-    if var("Toggle").AntiKicktg then
-        antikick()
-    end
-end)
+cm("CharAppLoad","Add", AntiKick)
 --//
 function pbkaura()
     FMC(40, function(m)
         local plr = var("ps"):GetPlayerFromCharacter(m)
         if mwtlist(plr.Name, "Find") then return end
+        if m.Humanoid:GetState() == Enum.HumanoidStateType.Dead then return end
         gblob(2)
         permown(m, function(a)
-            a.Humanoid.BreakJointsOnDeath = false
-            a.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+            delblob(m, function(a)
+                a.Humanoid.BreakJointsOnDeath = false
+                a.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+            end)
         end)
     end, "plrs")
 end
@@ -1947,6 +2148,244 @@ function pbkiaura()
         end)
     end, "plrs")
 end
+--//
+function pbkoaura()
+    FMC(30, function(m)
+        task.spawn(function()
+            timer("pkoaura", 2)
+            local plr = var("ps"):GetPlayerFromCharacter(m)
+            if mwtlist(plr.Name, "Find") then return end
+            if m.Humanoid:GetState() == Enum.HumanoidStateType.Dead then return end
+    
+            setowner(m.HumanoidRootPart,  "Safe")
+            repeat task.wait() until verify(m.Head, 2) or not timer("pkoaura")
+            m.Humanoid.BreakJointsOnDeath = false
+            m.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+            dgl(m.HumanoidRootPart)
+        end)
+    end, "plrs")
+end
+--//
+function pbkkoaura()
+    FMC(30, function(m)
+        task.spawn(function()
+            timer("pkkoaura", 2)
+            local plr = var("ps"):GetPlayerFromCharacter(m)
+            if mwtlist(plr.Name, "Find") then return end
+            if m.Humanoid:GetState() == Enum.HumanoidStateType.Dead then return end
+    
+            setowner(m.HumanoidRootPart,  "Safe")
+            repeat task.wait() until verify(m.Head, 2) or not timer("pkkoaura")
+            dgl(m.HumanoidRootPart)
+            m.HumanoidRootPart.CFrame = CFrame.new(0, 99e30, 0 )
+        end)
+    end, "plrs")
+end
+--//
+var("Toggle").ghpt = false
+var("Lists").ghpL = {}
+var("Lists").tbrk = {}
+
+function ghp(mdl)
+    if not mdl then return end
+
+    if not string.find(mdl.Name, "Food") and not string.find(mdl.Name, "Instrument") and not string.find(mdl.Name, "Poop") and not string.find(mdl.Name, "Cup") then
+        return
+    end
+    if tm.Find(var("Lists").tbrk, mdl) then return end
+
+    local hp = wfc(mdl, "HoldPart")
+    local dr = wfc(hp, "DropItemRemoteFunction")
+    local hr = wfc(hp, "HoldItemRemoteFunction")
+
+    if hp.RigidConstraint.Attachment1 then
+        repeat task.wait() until not hp.RigidConstraint.Attachment1
+    end
+
+    if not hp.RigidConstraint.Attachment1 then
+        task.spawn(function()
+            hr:InvokeServer(mdl, var("ov").char)
+        end)
+        dr:InvokeServer(mdl)
+        if tm.Find(var("Lists").ghpL, mdl) then
+            tm.Remove(var("Lists").ghpL, mdl)
+        end
+        tm.Add(var("Lists").tbrk, mdl)
+    end
+end
+
+function hdllgp(mdl, rec)
+    if not var("Toggle").ghpt then
+        if mdl then
+            tm.Add(var("Lists").ghpL, mdl)
+        end
+        return
+    end
+    if rec then
+        if #var("Lists").ghpL > 0 then
+            for _, sm in ipairs(var("Lists").ghpL) do
+                task.spawn(function()
+                    pcall(function()
+                        ghp(sm)
+                    end)
+                end)
+            end
+        end
+        return
+    end
+    if mdl then
+        ghp(mdl)
+    end
+end
+
+task.spawn(function()
+    for _, i in pairs(var("ps"):GetPlayers()) do
+        cm(workspace[i.Name .. "SpawnedInToys"], "ChildAdded", function(m)
+        end, i.Name .. "SpawnedInToys" .. "Conns")
+    end
+end)
+
+function rnaa()
+    for _, i in pairs(var("ps"):GetPlayers()) do
+        cm(i.Name .. "SpawnedInToys" .. "Conns", "Add", function(m)
+            hdllgp(m)
+        end)
+    end
+
+    if not var("Toggle").ghpt then
+        for _, i in pairs(var("ps"):GetPlayers()) do
+            for _, u in pairs(workspace[i.Name .. "SpawnedInToys"]:GetChildren()) do
+                tm.Add(var("Lists").ghpL, u)
+            end
+            task.wait(0.05)
+        end
+    end
+end
+
+task.spawn(rnaa)
+--//
+var("Conns").lag = {}
+var("Toggle").Lag = false
+
+function lag()
+    local num
+    local newnum
+
+    local function hdll()
+        if not num then return end
+
+        for _, conn in pairs(var("Conns").lag) do
+            pcall(function() conn:Disconnect() end) 
+        end
+        var("Conns").lag = {}
+
+        for i = 1, num do
+            local index = "Conn" .. tostring(i)
+            local conn
+
+            conn = var("RunS").Heartbeat:Connect(function()
+                if not var("Toggle").Lag then
+                    pcall(function()
+                        conn:Disconnect()
+                        var("Conns").lag[index] = nil
+                    end)
+                    return
+                end
+
+                local head = MBP("Head")
+                if head then
+                    var("Remotes").cgl:FireServer(MBP("Head"), MBP("Head").CFrame)
+                end
+            end)
+
+            var("Conns").lag[index] = conn
+        end
+    end
+
+    function hdllf()
+        local count = #var("ps"):GetPlayers()
+
+        if count > 10 then
+            newnum = 3
+        else
+            newnum = 2
+        end
+
+        if not num then
+            num = newnum
+        end
+
+        if num ~= newnum then
+            num = newnum
+            if var("Toggle").Lag then
+                hdll()
+            end
+        end
+    end
+
+    hdllf()
+    hdll()
+
+    repeat
+        hdllf()
+        task.wait(2)
+    until not var("Toggle").Lag
+end
+--//
+var("Valores").VRS = 2
+var("Toggle").pkl = false
+var("Valores").pklv = 500
+
+cm(var("RunS"), "RenderStepped", function()
+    if var("Toggle").pkl then
+        var("Remotes").egl:FireServer(string.rep("𒐫𓂀𗀀𖤐𐕣𒀀𓆣𒐫𗃼𒐫𖨆𐘋", var("Valores").pklv))
+    end    
+end, {ref = var("Valores"), key = "VRS"}, "pkl")
+--//
+function NmG()
+    local mdl = workspace:FindFirstChild("GrabParts")
+    local gp = wfc("WeldConstraint", wfc("GrabPart", mdl)).Part1
+
+    if gp then
+        if gp.AssemblyRootPart.ReceiveAge ~= 0 then
+            timer("Ege", ping()/1000 + 0.05)
+            repeat task.wait() until gp.AssemblyRootPart.ReceiveAge == 0 or not timer("Ege")
+        end
+
+        if gp.AssemblyRootPart.ReceiveAge == 0 then
+            repeat task.wait() until gp.AssemblyRootPart.ReceiveAge ~= 0 or mdl.Parent ~= workspace
+            if mdl.Parent == workspace then
+                var("VIM"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                var("VIM"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+            end
+        end
+    end
+end
+
+cm("WCA", "Add", NmG)
+--//
+var("Valores").fcontlim = 15
+
+function AntiPerm(a)
+    if not a then
+        SICF("FoodBread", var("Lists").Loc2["Hide"])
+        return
+    end
+    
+    task.spawn(function()
+        if a then
+            if a:FindFirstChild("SoundPart") then
+                for _, i in pairs(a:GetChildren()) do 
+                    if i.Name ~= "HoldPart" and i.Name ~= "PlayerValue" and i.Name ~= "ThisToysNumber" and i.Name ~= "HoldAndEatFood" then
+                        i:Destroy()
+                    end
+                end
+            end
+            hdrem(a, "Hold")
+            hdrem(a, "Drop")
+        end
+    end)
+end
 --sep                                                                  
 --# Orion Config
 
@@ -1973,7 +2412,7 @@ function notify(N, C, I, T)
     OrionLib:MakeNotification({
         Name = N or "Note!",
         Content = C or "Message",
-        Image = I or "rbxassetid://8798704474", 
+        Image = I or "rbxassetid://8798704474",     
         Time = T or 5
     })
 end
@@ -2089,6 +2528,7 @@ AntiGrabDrp = Antis:AddDropdown({
         "Explosion",
         "Banana",
         "Fling",
+        "Items",
         "Grab",
         "Kick",
         "Blob",
@@ -2096,16 +2536,16 @@ AntiGrabDrp = Antis:AddDropdown({
         "Void",
         "Pcld",
         "Lag"
-    },
-    Callback = function(Value) 
+    },    Callback = function(Value) 
         task.spawn(function()
             var("Toggle").AntiLag     = table.find(Value, "Lag") ~= nil
             var("Toggle").AntiFireTG  = table.find(Value, "Fire") ~= nil
             var("Toggle").AntiBlob    = table.find(Value, "Blob") ~= nil
             var("Toggle").AntiVoidTG  = table.find(Value, "Void") ~= nil
-            var("Toggle").AntiKicktg  = table.find(Value, "Kick") ~= nil
+            var("Toggle").AntiKick    = table.find(Value, "Kick") ~= nil
             var("Toggle").AntiGbTG    = table.find(Value, "Grab") ~= nil
             var("Toggle").pcld        = table.find(Value, "Pcld") ~= nil
+            var("Toggle").ghpt        = table.find(Value, "Items") ~= nil
             var("Toggle").AntiFling   = table.find(Value, "Fling") ~= nil
             var("Toggle").AntBnn      = table.find(Value, "Banana") ~= nil
             var("Toggle").AntiExpTG   = table.find(Value, "Explosion") ~= nil
@@ -2116,8 +2556,12 @@ AntiGrabDrp = Antis:AddDropdown({
 
             AntiFling()
 
-            if var("Toggle").AntiKicktg == true then
-                antikick()
+            if var("Toggle").AntiKick == true then
+                AntiKick()
+            end
+
+            if var("Toggle").ghpt then
+                hdllgp(nil, true)
             end
 
             if var("Toggle").AntBnn then
@@ -2236,6 +2680,40 @@ Antis:AddButton({
 
 Antis:AddSection()
 Antis:AddParagraph(
+"Anti Input",
+"Prevents Perm Owner On You and helps alot of functions", "Center"
+)
+
+Antis:AddDropdown({
+    Name = "Velocity",
+    Default = "Default(Invisible)",
+    Options = {"Default(Invisible)", "Fast"},
+    Callback = function(Value)
+        var("Valores").APM = Value
+        var("Valores").fcontlim = (var("Valores").APM == "Default(Invisible)") and 8 or 2
+    end
+})
+
+Antis:AddToggle({
+    Name = "Input",
+    Default = false,
+    Callback = function(Value)
+        var("Toggle", "AntiPermOwn", Value)
+        if Value then
+            cm(var("RunS"), "Heartbeat", function()
+                if not var("Toggle").AntiPermOwn then
+                    cm("HBAntPm", "disc")
+                    return
+                end
+                AntiPerm(inpast("FoodBread"))
+            end,{ref = var("Valores"), key = "fcontlim"}, "HBAntPm")
+        end
+    end,
+})
+
+
+Antis:AddSection()
+Antis:AddParagraph(
 "Sync",
 "Prevents players appear invisible or in the wrong place", "Center"
 )
@@ -2333,8 +2811,36 @@ jupval = Antis:AddSlider({
 Aura:ColorLabel("Aura Tab", nil, "Center")
 Aura:AddSection()
 
+Aura:ColorLabel("Ownership (O)", nil, "Center")
 Aura:AddToggle({
-    Name = "Kill(PermOwner)",
+    Name = "Kill(O)",
+    Default = false,
+    Callback = function(Value)
+        var("Toggle").LoKill = Value
+        repeat
+            task.wait(0.05)
+            pbkoaura()
+        until not var("Toggle").LoKill
+    end
+})
+
+Aura:AddToggle({
+    Name = "Kick(O)",
+    Default = false,
+    Callback = function(Value)
+        var("Toggle").LKoKill = Value
+        repeat
+            task.wait(0.1)
+            pbkkoaura()
+        until not var("Toggle").LKoKill
+    end
+})
+
+Aura:AddSection()
+Aura:ColorLabel("PermOwnership (PO)", nil, "Center")
+
+Aura:AddToggle({
+    Name = "Kill(PO)",
     Default = false,
     Callback = function(Value)
         var("Toggle").LKill = Value
@@ -2346,7 +2852,7 @@ Aura:AddToggle({
 })
 
 Aura:AddToggle({
-    Name = "Kick(Blob)",
+    Name = "Kick(PO)",
     Default = false,
     Callback = function(Value)
         var("Toggle").LKickb = Value
@@ -2404,85 +2910,104 @@ Blob:AddButton({
 
         if var("Valores").BlbPDropdwn == "Kill" then
             permown(var("BPDrod"), function(i)
-                i.Humanoid.BreakJointsOnDeath = false
-                i.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+                delblob(var("BPDrod"), function(i)
+                    i.Humanoid.BreakJointsOnDeath = false
+                    i.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+                end)
             end, true)
         elseif var("Valores").BlbPDropdwn == "Lock" then
             permown(var("BPDrod"), function(i)
-                i.HumanoidRootPart.Anchored = false
-                i.HumanoidRootPart.CFrame = CFrame.new(0, -1000, 0)
-                task.wait(ping()/900)
-                i.HumanoidRootPart.Anchored = true
+                delblob(var("BPDrod"), function(i)
+                    i.HumanoidRootPart.Anchored = false
+                    i.HumanoidRootPart.CFrame = CFrame.new(0, -1000, 0)
+                    task.wait(ping()/900)
+                    i.HumanoidRootPart.Anchored = true
+                end)
             end)
         elseif var("Valores").BlbPDropdwn == "bring" then
             permown(var("BPDrod"), function(i)
-                var("Toggle").cnbring = false
-                for _, i in pairs(i:GetChildren()) do
-                    if i:IsA("BasePart") and i.Name ~= "CamPart" then
-                        task.spawn(function()
-                            if i.Name == "Torso" then
-                                repeat 
-                                    task.wait()
-                                    i.CanCollide = false
-                                until var("Toggle").cnbring
-                            else
-                                i.CanCollide = false
-                            end
-                        end)
-                    end
-                end
-                local bp
-                if i.Parent ~= workspace then
-                    i.HumanoidRootPart.Position = MBP("HumanoidRootPart").Position + MBP("HumanoidRootPart").CFrame.LookVector * 5
-                    task.wait(ping()/900)
-                else
-                    if i.HumanoidRootPart:FindFirstChild("BodyPosition") then
-                        bp = i.HumanoidRootPart:FindFirstChild("BodyPosition")
-                    else
-                        bp = Instance.new("BodyPosition", i.HumanoidRootPart)
-                        bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bp.D = 300
-                        bp.P = 1000
-                    end
-                    bp.Position = MBP("HumanoidRootPart").Position + MBP("HumanoidRootPart").CFrame.LookVector * 5
-                end
-
-                task.spawn(function()
-                    timer("bbringp", 5)
-                    repeat task.wait() until i.Head:FindFirstChild("PartOwner") or not timer("bbringp")
-                    bp:Destroy()
-                    var("Toggle").cnbring = true
+                delblob(var("BPDrod"), function(i)
+                    var("Toggle").cnbring = false
                     for _, i in pairs(i:GetChildren()) do
                         if i:IsA("BasePart") and i.Name ~= "CamPart" then
-                            i.CanCollide = true
+                            task.spawn(function()
+                                if i.Name == "Torso" then
+                                    repeat 
+                                        task.wait()
+                                        i.CanCollide = false
+                                    until var("Toggle").cnbring
+                                else
+                                    i.CanCollide = false
+                                end
+                            end)
                         end
                     end
+                    local bp
+                    if i.Parent ~= workspace then
+                        i.HumanoidRootPart.Position = MBP("HumanoidRootPart").Position + MBP("HumanoidRootPart").CFrame.LookVector * 5
+                        task.wait(ping()/900)
+                    else
+                        if i.HumanoidRootPart:FindFirstChild("BodyPosition") then
+                            bp = i.HumanoidRootPart:FindFirstChild("BodyPosition")
+                        else
+                            bp = Instance.new("BodyPosition", i.HumanoidRootPart)
+                            bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bp.D = 300
+                            bp.P = 1000
+                        end
+                        bp.Position = MBP("HumanoidRootPart").Position + MBP("HumanoidRootPart").CFrame.LookVector * 5
+                    end
+    
+                    task.spawn(function()
+                        timer("bbringp", 5)
+                        repeat task.wait() until i.Head:FindFirstChild("PartOwner") or not timer("bbringp")
+                        bp:Destroy()
+                        var("Toggle").cnbring = true
+                        for _, i in pairs(i:GetChildren()) do
+                            if i:IsA("BasePart") and i.Name ~= "CamPart" then
+                                i.CanCollide = true
+                            end
+                        end
+                    end)
                 end)
             end)
         elseif var("Valores").BlbPDropdwn == "Kick(Once)" then
             permown(var("BPDrod"), function(i)
-                local bp = Instance.new("BodyPosition", i.HumanoidRootPart)
-                bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bp.P = 50000
-                bp.D = 500
-                bp.Position = MBP("HumanoidRootPart").Position + Vector3.new(0, 100, 0)
-
-                task.wait(ping()/1000 + 0.15)
-                dssetowner(i.HumanoidRootPart, 30, 2, function()
-                    dgl(i.HumanoidRootPart)
-                    task.wait(ping()/1000)
-                    firegrb(gblob(), i.HumanoidRootPart, "grb", true)
+                delblob(var("BPDrod"), function(i)
+                    local bp = Instance.new("BodyPosition", i.HumanoidRootPart)
+                    bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bp.P = 50000
+                    bp.D = 500
+                    bp.Position = MBP("HumanoidRootPart").Position + Vector3.new(0, 100, 0)
+    
+                    task.wait(ping()/1000 + 0.15)
+                    dssetowner(i.HumanoidRootPart, 30, 2, function()
+                        dgl(i.HumanoidRootPart)
+                        task.wait(ping()/1000)
+                        firegrb(gblob(), i.HumanoidRootPart, "grb", true)
+                    end)
+                    task.delay(10, function()
+                        bp:Destroy()
+                    end)
+                    var("Remotes").dt:FireServer(gblob())
                 end)
-                task.delay(10, function()
-                    bp:Destroy()
-                end)
-                var("Remotes").dt:FireServer(gblob())
             end)
         end
     end    
 })
+
+Blob:AddSection()
+
+Blob:AddToggle({
+    Name = "Remove WL Players",
+    Default = false,
+    Callback = function(Value)
+        var("Drops").BDpdown.tg = Value
+        UPDDrops()
+    end    
+})
 --///                                                                  
-Loop:ColorLabel("Bind Tab", nil, "Center")
+Loop:ColorLabel("Loop Tab", nil, "Center")
 Loop:AddSection()
 
 var("Drops").LPDropdown = Loop:AddDropdown({
@@ -2495,149 +3020,200 @@ var("Drops").LPDropdown = Loop:AddDropdown({
     end
 })
 
-lkicktg = Loop:AddToggle({
-    Name = "Kick(OwnerShip)",
-    Default = false,
-    Callback = function(Value)
-        lkick(Value, var("LPDrod"))
-        if not var("LPDrod") and Value then
-            lkicktg:Set(false)
-            notify("Note!", "Please Select a player")
-            return
-        end
-        if not Value then
-            for _, i in pairs(MBP("HumanoidRootPart"):GetChildren()) do
-                if i.Name == "aln" then
-                    i:Destroy()
-                end
-            end
-        end
-    end
-})
-
 Loop:AddSection()
 
-var("paths").rgtgl = nil
+local lpd = nil
 
-var("paths").rgtgl = Loop:AddToggle({
-    Name = "Ragdoll",
-    Default = false,
+lpd = Loop:AddDropdown({
+    Name = "Options",
+    Call = true,
+    Searchable = true,
+    Default = "Ragdoll",
+    Options = {
+        "Kick(OwnerShip Heaven)",
+        "Kick(OwnerShip)",
+        "Ragdoll",
+        "Kill",
+        "------------------",
+        "Kill (Blob)",
+    },
     Callback = function(Value)
-        var("Toggle").RagdollVal = Value
-        if not var("LPDrod") and Value then
-            var("paths").rgtgl:Set(false)
-            notify("Note!", "Please Select a player")
-            return
+        if Value == "------------------"  then
+            notify("Note!", "This is just a space :D")
+            lpd:Set("Ragdoll")
         end
-        if Value then
-            repeat
-                if var("p").CanSpawnToy then
-                    task.spawn(function()
-                        pcall(function()
-                            Sragdoll(var("LPDrod"))
-                        end)
-                    end)
-                end
-                task.wait()
-            until not var("Toggle").RagdollVal
-        end
+        var("Valores").LpDdrpdV = Value
     end
 })
-
-var("paths").kltgl = nil
-
-var("paths").kltgl = Loop:AddToggle({
-    Name = "Kill",
-    Default = false,
-    Callback = function(Value)
-        var("Toggle").Lkill = Value
-        if not var("LPDrod") and Value then
-            var("paths").kltgl:Set(false)
-            notify("Note!", "Please Select a player")
-            return
-        end
-        if Value then
-            local a = false
-            if var("LPDrod").Character.Parent ~= workspace then
-                notify("Note", "Person in Safe. Waiting ...", "rbxassetid://7733911828")
-                repeat
-                    task.wait()
-                until var("LPDrod").Character.Parent == workspace or not var("Toggle").Lkill
-            end
-            repeat
-                KillP(var("LPDrod"))
-                task.wait(0.1)
-            until not var("Toggle").Lkill or not var("LPDrod").Character or a
-            cm(var("LPDrod"), "CharactedAdded", function()
-                if not var("Toggle").Lkill then return end
-                repeat
-                    KillP(var("LPDrod"))
-                    task.wait(0.1)
-                until not var("Toggle").Lkill or not var("LPDrod").Character
-            end, "KillConn")
-        else
-            cm("KillConn", "disc") 
-        end
-    end
-})
-
-var("paths").klhtgl = nil
-
-var("paths").klhtgl = Loop:AddToggle({
-    Name = "Kick(OwnerShip Heaven)",
-    Default = false,
-    Callback = function(Value)
-        if not var("LPDrod") and Value then
-            var("paths").klhtgl:Set(false)
-            notify("Note!", "Please Select a player")
-            return
-        end
-        if Value then
-            brkowngc()
-            if var("LPDrod").Character.Parent ~= workspace then
-                notify("Note", "Person in Safe. Waiting ...", "rbxassetid://7733911828")
-                repeat
-                    task.wait()
-                until var("LPDrod").Character.Parent == workspace or not var("Toggle").Hvlpk
-            end
-            lpkh(Value, var("LPDrod"))
-        else
-            lpkh(Value, var("LPDrod"))
-        end
-    end
-})
-
-Loop:AddSection()
 
 var("Toggle").bkconn = false
 
-var("paths").bktgl = nil
-
-var("paths").bktgl = Loop:AddToggle({
-    Name = "Kill (Blob)",
+lpd2 = Loop:AddToggle({
+    Name = "Fire",
     Default = false,
     Callback = function(Value)
-        var("Toggle").Bkill = Value
-        if not var("LPDrod") and Value then
-            var("paths").bktgl:Set(false)
-            notify("Note!", "Please Select a player")
-            return
+        if not var("LPDrod") then
+            lpd2:Set(false)
+            notify("Note", "Select a person first.")
         end
-        if Value then
-            permown(var("LPDrod"), function(i)
-                i.Humanoid.BreakJointsOnDeath = false
-                i.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
-            end, true)
-            cm(var("LPDrod"), "CharacterAdded", function()
-                var("LPDrod").CharacterAppearanceLoaded:Wait()
-                task.wait(0.4)
+        if var("Valores").LpDdrpdV == "Kick(OwnerShip)" then
+            lkick(Value, var("LPDrod"))
+            if not var("LPDrod") and Value then
+                lpd2:Set(false)
+                notify("Note!", "Please Select a player")
+                return
+            end
+            if not Value then
+                for _, i in pairs(MBP("HumanoidRootPart"):GetChildren()) do
+                    if i.Name == "aln" then
+                        i:Destroy()
+                    end
+                end
+            end
+        elseif var("Valores").LpDdrpdV == "Kick(OwnerShip Heaven)" then
+            if not var("LPDrod") and Value then
+                lpd2:Set(false)
+                notify("Note!", "Please Select a player")
+                return
+            end
+            if Value then
+                brkowngc()
+                if var("LPDrod").Character.Parent ~= workspace then
+                    notify("Note", "Person in Safe. Waiting ...", "rbxassetid://7733911828")
+                    repeat
+                        task.wait()
+                    until var("LPDrod").Character.Parent == workspace or not var("Toggle").Hvlpk
+                end
+                lpkh(Value, var("LPDrod"))
+            else
+                lpkh(Value, var("LPDrod"))
+            end
+        elseif var("Valores").LpDdrpdV == "Ragdoll" then
+            var("Toggle").RagdollVal = Value
+            if not var("LPDrod") and Value then
+                lpd2:Set(false)
+                notify("Note!", "Please Select a player")
+                return
+            end
+            if Value then
+                repeat
+                    if var("p").CanSpawnToy then
+                        task.spawn(function()
+                            pcall(function()
+                                Sragdoll(var("LPDrod"))
+                            end)
+                        end)
+                    end
+                    task.wait()
+                until not var("Toggle").RagdollVal
+            end
+        elseif var("Valores").LpDdrpdV == "Kill" then
+            var("Toggle").Lkill = Value
+            if not var("LPDrod") and Value then
+                lpd2:Set(false)
+                notify("Note!", "Please Select a player")
+                return
+            end
+            if Value then
+                local a = false
+                if var("LPDrod").Character.Parent ~= workspace then
+                    notify("Note", "Person in Safe. Waiting ...", "rbxassetid://7733911828")
+                    repeat
+                        task.wait()
+                    until var("LPDrod").Character.Parent == workspace or not var("Toggle").Lkill
+                end
+                repeat
+                    KillP(var("LPDrod"))
+                    task.wait(0.1)
+                until not var("Toggle").Lkill or not var("LPDrod").Character or a
+                cm(var("LPDrod"), "CharactedAdded", function()
+                    if not var("Toggle").Lkill then return end
+                    repeat
+                        KillP(var("LPDrod"))
+                        task.wait(0.1)
+                    until not var("Toggle").Lkill or not var("LPDrod").Character
+                end, "KillConn")
+            else
+                cm("KillConn", "disc") 
+            end
+        elseif var("Valores").LpDdrpdV == "Kill (Blob)" then
+            var("Toggle").Bkill = Value
+            if not var("LPDrod") and Value then
+                lpd2:Set(false)
+                notify("Note!", "Please Select a player")
+                return
+            end
+            if Value then
                 permown(var("LPDrod"), function(i)
                     i.Humanoid.BreakJointsOnDeath = false
                     i.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
                 end, true)
-            end, "BlbConn")   
+                cm(var("LPDrod"), "CharacterAdded", function()
+                    var("LPDrod").CharacterAppearanceLoaded:Wait()
+                    task.wait(0.4)
+                    permown(var("LPDrod"), function(i)
+                        i.Humanoid.BreakJointsOnDeath = false
+                        i.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+                    end, true)
+                end, "BlbConn")   
+            else
+                cm("BlbConn", "disc")
+            end
+        end
+    end    
+})
+
+Loop:AddSection()
+
+Loop:AddToggle({
+    Name = "Remove WL Players",
+    Default = false,
+    Callback = function(Value)
+        var("Drops").LPDropdown.tg = Value
+        UPDDrops()
+    end    
+})
+Loop:AddSection()
+
+Loop:ColorLabel("Misc", nil, "Center")
+Loop:AddToggle({
+    Name = "Soft Lag",
+    Default = false,
+    Callback = function(Value)
+        var("Toggle").Lag = Value
+        if Value then
+            lag()
+        end
+    end    
+})
+
+Loop:AddSection()
+Loop:AddToggle({
+    Name = "Packet Send",
+    Default = false,
+    Callback = function(Value)
+        var("Toggle").pkl = Value
+    end    
+})
+
+Loop:AddTextbox({
+    Name = "Packet Strings",
+    Default = "1000",
+    TextDisappear = false,
+    BackGrountText = "Default(1000)",
+    Callback = function(Value)
+        if Value and tonumber(Value) ~= nil and tonumber(Value) <= 1800 then
+            var("Valores").pklv = Value
+            if tonumber(Value) > 1000 then
+                print("A")
+                notify("Note!", "Number above 1k keep an eye on the ping.")
+            end
+        elseif Value ~= "" and tonumber(Value) == nil then
+            notify("Note!", "Just Numbers Please")
+        elseif tonumber(Value) >= 1800 then
+            notify("Note!", "Number is too High")
         else
-            cm("BlbConn", "disc")
+            var("Valores").pklv = 1000
         end
     end
 })
@@ -2963,12 +3539,10 @@ Config:AddToggle({
 Config:AddSection()
 Config:AddParagraph(
     "Lasts Updates\n |\n v",
-    "Version 1.9 -- Auras\nVersion 2 -- Whitelist", "Center"
+    "Version 1.9 -- Whitelist\nVersion 2 -- Alot..", "Center"
 )
-Config:AddSection("Version 2", "Right", 10)
+Config:AddSection("Version 2.1", "Right", 10)
 cm("plradded", "Add", UPDDrops)
 OrionLib:Init() 
 --! Creator :: firemax
 --todo order // dropdowns
---add "fire Button" in loop tab
--- testt51233555

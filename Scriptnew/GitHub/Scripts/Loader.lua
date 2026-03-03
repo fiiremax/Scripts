@@ -23,6 +23,7 @@ local OrionLib = {
     Dropdowns = {},
     Toggles = {},
     Folder = nil,
+	Notifys = {},
     elmnts = {},
     Themes = {},
     Flags = {},
@@ -502,6 +503,10 @@ function OrionLib:MakeNotification(NotificationConfig)
 		game:GetService("ContentProvider"):PreloadAsync({NotificationConfig.Image})
 		NotificationConfig.Time = NotificationConfig.Time or 15
 
+		local key = NotificationConfig.Name .. NotificationConfig.Content
+		if OrionLib.Notifys[key] then return end
+		OrionLib.Notifys[key] = true
+
 		local NotificationParent = SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
@@ -551,8 +556,9 @@ function OrionLib:MakeNotification(NotificationConfig)
 		NotificationFrame:TweenPosition(UDim2.new(1, 40, 0, 0),'In','Quint',0.8,true)
 		task.wait(1.35)
 		NotificationFrame:Destroy()
+		OrionLib.Notifys[key] = nil
 	end)
-end   
+end
 
 function OrionLib:Init()
 	if OrionLib.SaveCfg and (isfile and readfile) then	
@@ -725,71 +731,70 @@ function OrionLib:MakeWindow(WindowConfig)
 	local DragPoint = SetProps(MakeElement("TFrame"), {
 		Size = UDim2.new(1, 0, 0, 50)
 	})
-
+	
 	local ThumbImage = SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=".. vgs.p.UserId .."&width=420&height=420&format=png"), {
-        Size = UDim2.new(1, 0, 1, 0)
-    })
-    
-    local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
-        Size = UDim2.new(0, 150, 1, -50),
-        Position = UDim2.new(0, 0, 0, 50)
-    }), {
-        AddThemeObject(SetProps(MakeElement("Frame"), {
-            Size = UDim2.new(1, 0, 0, 10),
-            Position = UDim2.new(0, 0, 0, 0)
-        }), "Second"), 
-        AddThemeObject(SetProps(MakeElement("Frame"), {
-            Size = UDim2.new(0, 10, 1, 0),
-            Position = UDim2.new(1, -10, 0, 0)
-        }), "Second"), 
-        AddThemeObject(SetProps(MakeElement("Frame"), {
-            Size = UDim2.new(0, 1, 1, 0),
-            Position = UDim2.new(1, -1, 0, 0)
-        }), "Stroke"), 
-        TabHolder,
-        SetChildren(SetProps(MakeElement("TFrame"), {
-            Size = UDim2.new(1, 0, 0, 50),
-            Position = UDim2.new(0, 0, 1, -50)
-        }), {
-            AddThemeObject(SetProps(MakeElement("Frame"), {
-                Size = UDim2.new(1, 0, 0, 1)
-            }), "Stroke"), 
-            AddThemeObject(SetChildren(SetProps(MakeElement("Frame"), {
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 32, 0, 32),
-                Position = UDim2.new(0, 10, 0.5, 0)
-            }), {
-                ThumbImage,
-                AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://4031889928"), {
-                    Size = UDim2.new(1, 0, 1, 0),
-                }), "Second"),
-                MakeElement("Corner", 1)
-            }), "Divider"),
-            SetChildren(SetProps(MakeElement("TFrame"), {
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(0, 32, 0, 32),
-                Position = UDim2.new(0, 10, 0.5, 0)
-            }), {
-                AddThemeObject(MakeElement("Stroke"), "Stroke"),
-                MakeElement("Corner", 1)
-            }),
-            AddThemeObject(SetProps(MakeElement("Label", vgs.p.DisplayName, WindowConfig.HidePremium and 14 or 13), {
-                Size = UDim2.new(1, -60, 0, 13),
-                Position = WindowConfig.HidePremium and UDim2.new(0, 50, 0, 19) or UDim2.new(0, 50, 0, 12),
-                Font = Enum.Font.GothamBold,
-                ClipsDescendants = true
-            }), "Text"),
+		Size = UDim2.new(1, 0, 1, 0)
+	})
+	
+	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+		Size = UDim2.new(0, 150, 1, -50),
+		Position = UDim2.new(0, 0, 0, 50)
+	}), {
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(1, 0, 0, 10),
+			Position = UDim2.new(0, 0, 0, 0)
+		}), "Second"), 
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(0, 10, 1, 0),
+			Position = UDim2.new(1, -10, 0, 0)
+		}), "Second"), 
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(0, 1, 1, 0),
+			Position = UDim2.new(1, -1, 0, 0)
+		}), "Stroke"), 
+		TabHolder,
+		SetChildren(SetProps(MakeElement("TFrame"), {
+			Size = UDim2.new(1, 0, 0, 50),
+			Position = UDim2.new(0, 0, 1, -50)
+		}), {
+			AddThemeObject(SetProps(MakeElement("Frame"), {
+				Size = UDim2.new(1, 0, 0, 1)
+			}), "Stroke"), 
+			AddThemeObject(SetChildren(SetProps(MakeElement("Frame"), {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.new(0, 32, 0, 32),
+				Position = UDim2.new(0, 10, 0.5, 0)
+			}), {
+				SetChildren(ThumbImage, {
+					MakeElement("Corner", 0, 12)
+				}),
+				MakeElement("Corner", 0, 11)
+			}), "Divider"),
+			SetChildren(SetProps(MakeElement("TFrame"), {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.new(0, 32, 0, 32),
+				Position = UDim2.new(0, 10, 0.5, 0)
+			}), {
+				AddThemeObject(MakeElement("Stroke"), "Stroke"),
+				MakeElement("Corner", 0, 10)
+			}),
+			AddThemeObject(SetProps(MakeElement("Label", vgs.p.DisplayName, WindowConfig.HidePremium and 14 or 13), {
+				Size = UDim2.new(1, -60, 0, 13),
+				Position = WindowConfig.HidePremium and UDim2.new(0, 50, 0, 19) or UDim2.new(0, 50, 0, 12),
+				Font = Enum.Font.GothamBold,
+				ClipsDescendants = true
+			}), "Text"),
 			AddThemeObject(SetProps(MakeElement("Label", WindowConfig.TagText, 12), {
 				Size = UDim2.new(1, -60, 0, 12),
 				Position = UDim2.new(0, 50, 1, -25),
 				Visible = not WindowConfig.HidePremium
 			}), "TextDark")
-        }),
-    }), "Second")
-    
-    AddConnection(vgs.p.CharacterAppearanceLoaded, function()
-        ThumbImage.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=".. vgs.p.UserId .."&width=420&height=420&format=png&t=".. tick()
-    end)
+		}),
+	}), "Second")
+	
+	AddConnection(vgs.p.CharacterAppearanceLoaded, function()
+		ThumbImage.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=".. vgs.p.UserId .."&width=420&height=420&format=png&t=".. tick()
+	end)
 	local Tabs = {}
 	
 	local SearchSystem = {
@@ -2481,6 +2486,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				DropdownConfig.Searchable = DropdownConfig.Searchable or false
 				DropdownConfig.Grouped = DropdownConfig.Grouped or false
 				DropdownConfig.Icons = DropdownConfig.Icons or false
+				DropdownConfig.tgl = DropdownConfig.tgl or false -- for scripts ex: aaaaaah idk
 				DropdownConfig.MaxHeight = DropdownConfig.MaxHeight or 200
 				DropdownConfig.PlrLeftNote = DropdownConfig.PlrLeftNote or false
 				DropdownConfig.Callback = DropdownConfig.Callback or function() end
@@ -2723,10 +2729,13 @@ function OrionLib:MakeWindow(WindowConfig)
 							AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 								Size = UDim2.new(0, 50, 0, 50),
 								Position = UDim2.new(0, 5, 0, 5)
-							}), {
-								SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. (vgs.ps:FindFirstChild(uname) and vgs.ps[uname].UserId or 1) .. "&width=420&height=420&format=png"), {
+							}), 
+							{
+								SetChildren(SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. (vgs.ps:FindFirstChild(uname) and vgs.ps[uname].UserId or 1) .. "&width=420&height=420&format=png"), {
 									Size = UDim2.new(1, 0, 1, 0),
 									BackgroundTransparency = 1
+								}), {
+									MakeElement("Corner", 0, 10)
 								}),
 								MakeElement("Corner", 1)
 							}), "Divider")
@@ -3408,7 +3417,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				TextboxConfig.Name = TextboxConfig.Name or "Textbox"
 				TextboxConfig.Default = TextboxConfig.Default or ""
 				TextboxConfig.TextDisappear = TextboxConfig.TextDisappear or false
-				TextboxConfig.BackGrountText = TextboxConfig.BackGrountText or "Input"
+				TextboxConfig.BackGroundtext = TextboxConfig.BackGrountText or "Input"
 				TextboxConfig.Callback = TextboxConfig.Callback or function() end
 			
 				local Click = SetProps(MakeElement("Button"), {

@@ -480,7 +480,7 @@ local Textbox = Tab:AddTextbox({
     Name = "Textbox",
     Default = "Default text",
     TextDisappear = false,
-    BackGrountText = "Text",
+    BackGroundtext = "Text",
     Callback = function(Value)
         print("Text entered:", Value)
     end
