@@ -677,101 +677,58 @@ function UModule.cm(...)
         
         if cmd == "disc" or cmd == "disconnect" then
             if UModule.env.Connections[name] then
-                pcall(function()
-                    UModule.env.Connections[name]:Disconnect()
-                end)
+                pcall(function() UModule.env.Connections[name]:Disconnect() end)
                 UModule.env.Connections[name] = nil
             end
             return
         end
-        
         if cmd == "pause" then
-            if UModule.env.Connections[name] then
-                UModule.env.Connections[name]._paused = true
-            end
+            if UModule.env.Connections[name] then UModule.env.Connections[name]._paused = true end
             return
         end
-        
         if cmd == "resume" then
-            if UModule.env.Connections[name] then
-                UModule.env.Connections[name]._paused = false
-            end
+            if UModule.env.Connections[name] then UModule.env.Connections[name]._paused = false end
             return
         end
-        
         if cmd == "status" then
-            if not UModule.env.Connections[name] then
-                return "none"
-            end
-            if UModule.env.Connections[name]._paused then
-                return "paused"
-            end
+            if not UModule.env.Connections[name] then return "none" end
+            if UModule.env.Connections[name]._paused then return "paused" end
             return "active"
         end
-        
         if cmd == "recon" or cmd == "reconnect" then
             local connData = UModule.env.Connections[name]
             if not connData then return end
-            
             local senv = connData.eventType
             local sprop = connData.propName
             local scback = {}
-            for _, cb in ipairs(connData._cbacks) do
-                table.insert(scback, cb)
-            end
+            for _, cb in ipairs(connData._cbacks) do table.insert(scback, cb) end
             local savedTtle = connData.ttle
             local oldInst = connData.inst
-            
             pcall(function() connData:Disconnect() end)
-            
             local ninst = nil
             local callback = scback[1].func
-            
             local i = 1
             while true do
                 local n, value = debug.getupvalue(callback, i)
                 if not n then break end
-                
                 if type(value) == "function" then
                     local success, result = pcall(value, oldInst.Name)
-                    if success and typeof(result) == "Instance" then
-                        ninst = result
-                        break
-                    end
+                    if success and typeof(result) == "Instance" then ninst = result break end
                 end
-                
-                if typeof(value) == "Instance" and value.ClassName == oldInst.ClassName then
-                    ninst = value
-                    break
-                end
-                
+                if typeof(value) == "Instance" and value.ClassName == oldInst.ClassName then ninst = value break end
                 i = i + 1
             end
-            
             if not ninst then
-                local success, char = pcall(function()
-                    return game:GetService("Players").LocalPlayer.Character
-                end)
-                
-                if success and char then
-                    ninst = char:FindFirstChild(oldInst.Name)
-                end
+                local success, char = pcall(function() return game:GetService("Players").LocalPlayer.Character end)
+                if success and char then ninst = char:FindFirstChild(oldInst.Name) end
             end
-            
             if not ninst then return end
-            
             local reconArgs = {ninst, senv}
-            if sprop then
-                table.insert(reconArgs, sprop)
-            end
+            if sprop then table.insert(reconArgs, sprop) end
             table.insert(reconArgs, callback)
-            if savedTtle then
-                table.insert(reconArgs, savedTtle)
-            end
+            if savedTtle then table.insert(reconArgs, savedTtle) end
             table.insert(reconArgs, name)
-            
             UModule.cm(unpack(reconArgs))
-            
             return
         end
     end
@@ -790,41 +747,20 @@ function UModule.cm(...)
     
     for _, arg in ipairs(args) do
         local t = type(arg)
-        if typeof(arg) == "Instance" then
-            inst = arg
-        elseif t == "function" then
-            cback = arg
+        if typeof(arg) == "Instance" then inst = arg
+        elseif t == "function" then cback = arg
         elseif t == "string" then
-            if arg == "Add" then
-                madd = true
-            elseif arg == "once" or arg == "Once" then
-                once = true
-            else
-                table.insert(stgs, arg)
-            end
-        elseif t == "number" then
-            ttle = arg
-        elseif t == "table" then
-            ttle = arg
-        end
+            if arg == "Add" then madd = true
+            elseif arg == "once" or arg == "Once" then once = true
+            else table.insert(stgs, arg) end
+        elseif t == "number" then ttle = arg
+        elseif t == "table" then ttle = arg end
     end
     
     if madd then
         local cname = stgs[1]
-        if not cname or not UModule.env.Connections[cname] then
-            return
-        end
-        
-        if not cback then
-            return
-        end
-        
-        table.insert(UModule.env.Connections[cname]._cbacks, {
-            func = cback, 
-            once = once,
-            counter = 0,
-            ttle = ttle
-        })
+        if not cname or not UModule.env.Connections[cname] or not cback then return end
+        table.insert(UModule.env.Connections[cname]._cbacks, {func = cback, once = once, counter = 0, ttle = ttle})
         return UModule.env.Connections[cname]
     end
     
@@ -832,29 +768,42 @@ function UModule.cm(...)
     
     local event = stgs[1]
     local prop = nil
+
+    if event == "BindToRenderStep" then
+        local priority = type(ttle) == "number" and ttle or Enum.RenderPriority.Last.Value
+        name = stgs[2] or ("brs_" .. tostring(priority) .. "_" .. tick())
+        if UModule.env.Connections[name] then
+            pcall(function() vgs.RunS:UnbindFromRenderStep(name) end)
+            UModule.env.Connections[name] = nil
+        end
+        vgs.RunS:BindToRenderStep(name, priority, function(...)
+            local connData = UModule.env.Connections[name]
+            if not connData or connData._paused then return end
+            pcall(cback, ...)
+        end)
+        UModule.env.Connections[name] = {
+            inst = inst,
+            eventType = "BindToRenderStep",
+            _cbacks = {{func = cback, once = false, counter = 0}},
+            _paused = false,
+            Disconnect = function(self)
+                pcall(function() vgs.RunS:UnbindFromRenderStep(name) end)
+                UModule.env.Connections[name] = nil
+            end
+        }
+        return UModule.env.Connections[name]
+    end
     
     if not event then
         local fstr = gfstr(cback)
-        
-        if once and not name then
-            name = "once_" .. tick()
-        else
-            name = stgs[2] or tostring(inst) .. "_Destroying_" .. fstr
-        end
-        
-        if UModule.env.Connections[name] then
-            UModule.env.Connections[name] = nil
-        end
-        
+        if once and not name then name = "once_" .. tick()
+        else name = stgs[2] or tostring(inst) .. "_Destroying_" .. fstr end
+        if UModule.env.Connections[name] then UModule.env.Connections[name] = nil end
         local conn = inst.Destroying:Connect(cback)
-        
         UModule.env.Connections[name] = {
-            connection = conn,
-            inst = inst,
-            eventType = "Destroying",
+            connection = conn, inst = inst, eventType = "Destroying",
             _cbacks = {{func = cback, once = once, counter = 0, ttle = ttle}},
-            _funcString = fstr,
-            _paused = false,
+            _funcString = fstr, _paused = false,
             Disconnect = function(self)
                 if self.connection then
                     pcall(function() self.connection:Disconnect() end)
@@ -863,7 +812,6 @@ function UModule.cm(...)
                 end
             end
         }
-        
         return UModule.env.Connections[name]
     end
     
@@ -877,8 +825,7 @@ function UModule.cm(...)
     local fstr = gfstr(cback)
     
     if not name then
-        if once then
-            name = "once_" .. tick()
+        if once then name = "once_" .. tick()
         else
             name = tostring(inst) .. "_" .. tostring(event)
             if prop then name = name .. "_" .. prop end
@@ -887,75 +834,37 @@ function UModule.cm(...)
     end
     
     if UModule.env.Connections[name] then
-        if UModule.env.Connections[name]._funcString ~= fstr then
-            name = name .. "_" .. tick()
-        else
-            UModule.env.Connections[name] = nil
-        end
+        if UModule.env.Connections[name]._funcString ~= fstr then name = name .. "_" .. tick()
+        else UModule.env.Connections[name] = nil end
     end
     
     local function rcbs(...)
         local connData = UModule.env.Connections[name]
-        if not connData then return end
-        
-        if connData._paused then
-            return
-        end
-        
+        if not connData or connData._paused then return end
         local args = {...}
-        
         local callbacksCopy = {}
-        for i, cbEntry in ipairs(connData._cbacks) do
-            table.insert(callbacksCopy, {index = i, entry = cbEntry})
-        end
-        
+        for i, cbEntry in ipairs(connData._cbacks) do table.insert(callbacksCopy, {index = i, entry = cbEntry}) end
         local toRemove = {}
-        
         for _, cbData in ipairs(callbacksCopy) do
             local cbEntry = cbData.entry
             local ok = true
-            
             if cbEntry.ttle then
                 cbEntry.counter = cbEntry.counter + 1
-                local tthVal
-                if type(cbEntry.ttle) == "table" then
-                    tthVal = cbEntry.ttle.ref and cbEntry.ttle.ref[cbEntry.ttle.key] or cbEntry.ttle
-                else
-                    tthVal = cbEntry.ttle
-                end
-                if cbEntry.counter < tthVal then
-                    ok = false
-                else
-                    cbEntry.counter = 0
-                end
+                local tthVal = type(cbEntry.ttle) == "table" and (cbEntry.ttle.ref and cbEntry.ttle.ref[cbEntry.ttle.key] or cbEntry.ttle) or cbEntry.ttle
+                if cbEntry.counter < tthVal then ok = false else cbEntry.counter = 0 end
             end
-            
             if ok then
-                task.spawn(function()
-                    pcall(function()
-                        cbEntry.func(unpack(args))
-                    end)
-                end)
-                
-                if cbEntry.once then
-                    table.insert(toRemove, cbData.index)
-                end
+                task.spawn(function() pcall(function() cbEntry.func(unpack(args)) end) end)
+                if cbEntry.once then table.insert(toRemove, cbData.index) end
             end
         end
-        
         for i = #toRemove, 1, -1 do
-            local idx = toRemove[i]
-            if connData._cbacks[idx] then
-                table.remove(connData._cbacks, idx)
-            end
+            if connData._cbacks[toRemove[i]] then table.remove(connData._cbacks, toRemove[i]) end
         end
-        
         if once then
             task.defer(function()
                 if UModule.env.Connections[name] then
-                    pcall(function()
-                        UModule.env.Connections[name]:Disconnect()
-                    end)
+                    pcall(function() UModule.env.Connections[name]:Disconnect() end)
                 end
             end)
         end
@@ -967,9 +876,7 @@ function UModule.cm(...)
             connection = inst:GetPropertyChangedSignal(prop):Connect(rcbs)
         else
             local evt = inst[event]
-            if evt and typeof(evt) == "RBXScriptSignal" then
-                connection = evt:Connect(rcbs)
-            end
+            if evt and typeof(evt) == "RBXScriptSignal" then connection = evt:Connect(rcbs) end
         end
     end)
     
@@ -980,22 +887,15 @@ function UModule.cm(...)
             if connection then
                 connection:Disconnect()
                 connection = nil
-                if UModule.env.Connections[name] then
-                    UModule.env.Connections[name] = nil
-                end
+                if UModule.env.Connections[name] then UModule.env.Connections[name] = nil end
             end
         end)
     end)
     
     UModule.env.Connections[name] = {
-        connection = connection,
-        inst = inst,
-        eventType = event,
-        propName = prop,
+        connection = connection, inst = inst, eventType = event, propName = prop,
         _cbacks = {{func = cback, once = once, counter = 0, ttle = ttle}},
-        _funcString = fstr,
-        _paused = false,
-        ttle = ttle,
+        _funcString = fstr, _paused = false, ttle = ttle,
         Disconnect = function(self)
             if self.connection then
                 pcall(function() self.connection:Disconnect() end)

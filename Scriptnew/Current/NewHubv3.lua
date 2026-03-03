@@ -1141,7 +1141,7 @@ end
 --//
 cm(var("p").PlayerGui.ControlsGui.ToggleControlsGuiVisibility, "Event", function(m)
     if not m and timer("gccrandmnm") then
-        repeat task.wait() until not MBP("Humanoid").SeatPart
+        repeat task.wait() until not MBP("Humanoid").Sit == true
         task.wait(0.04)
         var("CAS"):UnbindAction("RightGrab")
         var("CAS"):UnbindAction("LeftGrab")
@@ -1508,111 +1508,95 @@ local lpd2 = nil
 function lkick(on, p)
     if not p then return end
     var("Toggle").lkick = on
+    for i = 1, 6 do cm("kickconn"..i, "disc") end
     cm("kickconn", "disc")
 
-    if not var("Toggle").lkick then
-        if p and p.Character.HumanoidRootPart then
-            Alpos(false, p)
-        end
-        cm("kickconn", "disc")  
-        return 
+    if not on then
+        if p.Character and p.Character.HumanoidRootPart then Alpos(false, p) end
+        return
     end
-    if p and p.Character and p.Character.Parent ~= workspace then
+    if p.Character and p.Character.Parent ~= workspace then
         notify("Note", p.DisplayName .. " in House!")
         var("Toggle").Ddnote = true
-        repeat task.wait() until not p.Character or p.Character.Parent == workspace or not var("Toggle").lkick
+        repeat task.wait() until not p.Character or p.Character.Parent == workspace or not on
     end
     task.spawn(function()
-        repeat 
-            if p.Character.HumanoidRootPart then 
+        repeat
+            if p.Character and p.Character.HumanoidRootPart then
                 FMC(15, function(m)
                     if m.Name == "NinjaKunai" or m.Name == "NinjaShuriken" and m.Parent ~= var("ov").inv then
                         local sp = m:FindFirstChild("SoundPart")
-                        if sp then
-                            setowner(sp, "Safe")
-                        end
+                        if sp then setowner(sp, "Safe") end
                     end
                 end, p.Character.HumanoidRootPart)
             end
             task.wait(0.1)
         until not var("Toggle").lkick or not p
     end)
-    if not var("Toggle").lkick then Alpos(on, p) end
-    var("Toggle").lkick2 = true 
+    if not on then Alpos(on, p) end
+    var("Toggle").lkick2 = true
     Alpos(true, p, Vector3.new(0, 20, 0))
-    task.wait(0.1)
+    task.wait(0.1) 
     bringp(p.Character, 2)
-    task.wait(0.5)
+    task.wait(0.5) 
     dgl(p.Character.Torso)
     task.wait(0.1)
-    local ly = nil
-    local brgg = false
-    if not var("Toggle").lkick then Alpos(on, p) end
-        
-    cm(var("RunS"), "RenderStepped", function()
-        if fps() >= 400 and not var("Toggle").tmrrr then
-            var("Valores").Ttle = 2
-        elseif fps() >= 200 and not var("Toggle").tmrrr then
-            var("Valores").Ttle = 1
-            elseif fps() <= 200 and not var("Toggle").tmrrr then
-                var("Valores").Ttle = 0
-        elseif ping() > 500 then
-            return
-        end
-    
+    if not on then Alpos(on, p) end
+
+    local ly, brgg = nil, false
+
+    function hdl()
         if not var("Toggle").lkick then
             Alpos(false, p)
-            for _, i in pairs(MBP("HumanoidRootPart"):GetChildren()) do
-                if i.Name == "aln" then
-                    i:Destroy()
-                end
-            end
-            cm("kickconn", "disc")
-        elseif not var("ps"):FindFirstChild(p.Name) and lpd2 and var("Toggle").lkick then
+            for _, i in pairs(MBP("HumanoidRootPart"):GetChildren()) do if i.Name == "aln" then i:Destroy() end end
+            cm("kickconn", "disc") for i = 1, 6 do cm("kickconn"..i, "disc") end return
+        elseif not var("ps"):FindFirstChild(p.Name) and lpd2 then
             notify("Note!", p.DisplayName .. " Kicked, Turning Off")
-            lpd2:Set(false)
-            cm("kickconn", "disc")
+            lpd2:Set(false) cm("kickconn", "disc") for i = 1, 6 do cm("kickconn"..i, "disc") end return
         end
-        if p.Character.Parent ~= workspace then     
-            if not var("Toggle").Ddnote then
-                var("Toggle").Ddnote = true
-                notify("Note", p.DisplayName .. " in House!")
+        local char = p.Character
+        if not char or char.Parent ~= workspace then
+            if not var("Toggle").Ddnote then var("Toggle").Ddnote = true notify("Note", p.DisplayName .. " in House!") end
+            return
+        end
+        if char.Humanoid and char.Humanoid:GetState() == Enum.HumanoidStateType.Dead or not char.Torso then return end
+        if not char.HumanoidRootPart:FindFirstChild("apos") then 
+            Alpos(true, p, Vector3.new(0, 20, 0)) 
+            var("Toggle").lkick2 = true 
+            return 
+        end
+        if brgg then return end
+        if IsAround(char.Torso, 30) then
+            var("Toggle").Brngng = false setowner(char.Torso) dgl(char.Torso)
+        elseif not var("Toggle").Brngng then
+            bringp(char, 2) var("Toggle").Brngng = true
+        end
+    end
+
+    cm(var("RunS"), "RenderStepped", function()
+        if not var("Toggle").tmrrr then var("Valores").Ttle = fps() >= 400 and 2 or fps() >= 200 and 1 or 0 end
+        if ping() > 500 then return end
+        if fps() <= 60 then
+            if cm("kickconn2", "status") == "none" then
+                for i = 2, 5 do 
+                    cm(var("RunS"), "RenderStepped", hdl, "kickconn"..i) 
+                end
+                cm(var("RunS"), "Stepped", hdl, "kickconn6")
             end
-            return
+        else
+            for i = 2, 6 do 
+                cm("kickconn"..i, "disc") 
+            end
         end
-        if p.Character:FindFirstChild("Humanoid") and p.Character["Humanoid"]:GetState() == Enum.HumanoidStateType.Dead or not p.Character.Torso then
-            return
-        end
-        if not p.Character.HumanoidRootPart:FindFirstChild("apos") then
-            Alpos(true, p, Vector3.new(0, 20, 0))
-            var("Toggle").lkick2 = true
-            return
-        end
-
-        local cy = p.Character.HumanoidRootPart.Position.Y
-
+        local cy = p.Character and p.Character.HumanoidRootPart and p.Character.HumanoidRootPart.Position.Y
+        if not cy then return end
         if ly and not brgg and math.abs(cy - ly) > 5 then
-            brgg = true
+            brgg = true 
             bringp(p.Character, 2)
-            task.delay(0.5, function()
-                var("Toggle").tmrrr = true
-                brgg = false
-                task.wait(1)
-                var("Toggle").tmrrr = false
-            end)
+            task.delay(0.5, function() var("Toggle").tmrrr = true brgg = false task.wait(1) var("Toggle").tmrrr = false end)
         end
         ly = cy
-    
-        if brgg then return end
-    
-        if IsAround(p.Character.Torso, 30) then
-            var("Toggle").Brngng = false
-            setowner(p.Character.Torso)
-            dgl(p.Character.Torso)
-        elseif not var("Toggle").Brngng then
-            bringp(p.Character, 2)
-            var("Toggle").Brngng = true
-        end
+        hdl()
     end, {ref = var("Valores"), key = "Ttle"}, "kickconn")
 end
 --//
