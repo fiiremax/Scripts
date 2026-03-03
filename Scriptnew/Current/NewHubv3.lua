@@ -2132,6 +2132,7 @@ function pbkiaura()
             if not verify(m.Head, 2) then return end
 
             local bp = Instance.new("BodyPosition")
+
             bp.Position = m.HumanoidRootPart.Position + Vector3.new(0, 15, 0)
             bp.MaxForce = Vector3.new(0, math.huge, 0)
             bp.P = 1e5
@@ -2694,23 +2695,29 @@ Antis:AddDropdown({
     end
 })
 
+var("Valores").AIToy = "FoodBread"
+
 Antis:AddToggle({
     Name = "Input",
     Default = false,
     Callback = function(Value)
         var("Toggle", "AntiPermOwn", Value)
+        if not tm.Find(var("paths").Toys, "FoodBread") then
+            notify("Note", "You Dont Have FoodBread", "rbxassetid://7733911828")
+            var("Valores").AIToy = "InstrumentWoodwindOcarina"
+            return
+        end
         if Value then
             cm(var("RunS"), "Heartbeat", function()
                 if not var("Toggle").AntiPermOwn then
                     cm("HBAntPm", "disc")
                     return
                 end
-                AntiPerm(inpast("FoodBread"))
+                AntiPerm(inpast(var("Valores").AIToy))
             end,{ref = var("Valores"), key = "fcontlim"}, "HBAntPm")
         end
     end,
 })
-
 
 Antis:AddSection()
 Antis:AddParagraph(
