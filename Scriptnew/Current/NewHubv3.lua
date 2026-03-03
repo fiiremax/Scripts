@@ -1142,7 +1142,7 @@ end
 cm(var("p").PlayerGui.ControlsGui.ToggleControlsGuiVisibility, "Event", function(m)
     if not m and timer("gccrandmnm") then
         repeat task.wait() until not MBP("Humanoid").SeatPart
-        task.wait(0.03)
+        task.wait(0.04)
         var("CAS"):UnbindAction("RightGrab")
         var("CAS"):UnbindAction("LeftGrab")
         task.wait()
