@@ -8,7 +8,7 @@ local ippp     = u.IPPP
 local SICF     = u.SICF
 local FINF     = u.FINF
 local SPE      = u.SPE 
-local MBP      = u.MBP
+local MBP      = u.MBP  
 local wfc      = u.wfc
 local fps      = u.fps
 local FMC      = u.FMC
@@ -1614,7 +1614,7 @@ function hdlb(i)
         if not hp then return end
         local gr = p("HoldItemRemoteFunction", hp)
         local dr = p("DropItemRemoteFunction", hp)
-        if p("RigidConstraint", hp, 2).Attachment1 then 
+        if p("RigidConstraint", hp, 2).Attachment1 then
             repeat task.wait() until not p("RigidConstraint", hp).Attachment1 or i.Parent == nil
         end
         
@@ -2319,11 +2319,13 @@ end
 --//
 var("Valores").VRS = 2
 var("Toggle").pkl = false
-var("Valores").pklv = 500
+var("Valores").pklv = 800
 
 cm(var("RunS"), "RenderStepped", function()
     if var("Toggle").pkl then
-        var("Remotes").egl:FireServer(string.rep("𒐫𓂀𗀀𖤐𐕣𒀀𓆣𒐫𗃼𒐫𖨆𐘋", var("Valores").pklv))
+        for i = 1, 2 do
+            var("Remotes").egl:FireServer(string.rep("𒐫𓂀𗀀𖤐𐕣𒀀𓆣𒐫𗃼𒐫𖨆𐘋", var("Valores").pklv))
+        end
     end    
 end, {ref = var("Valores"), key = "VRS"}, "pkl")
 --//
@@ -3189,11 +3191,11 @@ Loop:AddToggle({
 
 Loop:AddTextbox({
     Name = "Packet Strings",
-    Default = "1000",
+    Default = "800",
     TextDisappear = false,
-    BackGrountText = "Default(1000)",
+    BackGrountText = "Default(800)",
     Callback = function(Value)
-        if Value and tonumber(Value) ~= nil and tonumber(Value) <= 1800 then
+        if Value and tonumber(Value) ~= nil and tonumber(Value) <= 1600 then
             var("Valores").pklv = Value
             if tonumber(Value) > 1000 then
                 print("A")
@@ -3201,7 +3203,7 @@ Loop:AddTextbox({
             end
         elseif Value ~= "" and tonumber(Value) == nil then
             notify("Note!", "Just Numbers Please")
-        elseif tonumber(Value) >= 1800 then
+        elseif tonumber(Value) >= 1600 then
             notify("Note!", "Number is too High")
         else
             var("Valores").pklv = 1000
@@ -3533,6 +3535,7 @@ Config:AddParagraph(
     "Version 1.9 -- Whitelist\nVersion 2 -- Alot..", "Center"
 )
 Config:AddSection("Version 2.1", "Right", 10)
+Config:AddSection("DISCONTINUED", "Right", 10)
 cm("plradded", "Add", UPDDrops)
 OrionLib:Init() 
 --! Creator :: firemax
