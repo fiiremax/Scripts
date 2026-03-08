@@ -352,14 +352,14 @@ local BlacklistedKeys = {
 }
 
 local FreeMouse = Create("TextButton", {
-    Name                = "FMouse",
-    Size                = UDim2.new(0, 100, 0, 50),
+    Name                   = "FMouse",
+    Size                   = UDim2.new(0, 0, 0, 0),
     BackgroundTransparency = 1,
-    Text                = "",
-    Position            = UDim2.new(0, 100, 0, 100),
-    Modal               = false,
-    Parent              = Orion,
-    Visible             = true
+    Text                   = "",
+    Position               = UDim2.new(0, 0, 0, 0),
+    Modal                  = false,
+    Parent                 = Orion,
+    Visible                = true
 })
 
 local nz = 0.5
@@ -807,7 +807,8 @@ function OrionLib:MakeWindow(WindowConfig)
     })
 
     local DragPoint = SetProps(MakeElement("TFrame"), {
-        Size = UDim2.new(1, 0, 0, 36)
+        Size = UDim2.new(1, 0, 0, 36),
+		Active = true
     })
 
     local ThumbImage = SetProps(MakeElement("Image",
@@ -841,7 +842,8 @@ function OrionLib:MakeWindow(WindowConfig)
     local ContentPanel = AddThemeObject(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 8), {
         Size             = UDim2.new(1, -52, 1, -44),
         Position         = UDim2.new(0, 48, 0, 40),
-        ClipsDescendants = true
+        ClipsDescendants = true,
+		Active           = false
     }), "Second")
 
     local EmptyFrame = SetChildren(SetProps(MakeElement("TFrame"), {
@@ -1218,13 +1220,14 @@ function OrionLib:MakeWindow(WindowConfig)
         TextSize     = 15,
         TextTruncate = Enum.TextTruncate.AtEnd
     }), "Text")
-
-    local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 12), {
-        Parent           = Orion,
-        Position         = UDim2.new(0.5, -307, 0.5, -172),
-        Size             = UDim2.new(0, 615, 0, 344),
-        ClipsDescendants = true
-    }), {
+	
+	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 12), {
+		Parent           = Orion,
+		Position         = UDim2.new(0.5, -307, 0.5, -172),
+		Size             = UDim2.new(0, 615, 0, 344),
+		ClipsDescendants = true,
+		Active           = false  
+	}), {
         SetChildren(SetProps(MakeElement("TFrame"), {
             Size = UDim2.new(1, 0, 0, 36),
             Name = "TopBar"
@@ -1243,7 +1246,8 @@ function OrionLib:MakeWindow(WindowConfig)
             Size             = UDim2.new(0, 44, 1, -36),
             Position         = UDim2.new(0, 0, 0, 36),
             Name             = "TabStrip",
-            ClipsDescendants = true
+            ClipsDescendants = true,
+			Active           = false
         }), {
             AddThemeObject(Create("Frame", {
                 Size            = UDim2.new(0, 35, 0, 1),
@@ -1259,7 +1263,6 @@ function OrionLib:MakeWindow(WindowConfig)
         ContentPanel
     }), "Main")
 
-    MainWindow.Active = true
 
     local SearchOpen = false
 
@@ -2045,15 +2048,16 @@ function OrionLib:MakeWindow(WindowConfig)
 		end)
 
 		AddItemTable(Tabs, TabConfig.Name, TabFrame)
-
+		
 		local Container = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255,255,255), 5), {
 			Size    = UDim2.new(1,0,1,0),
 			Position = UDim2.new(0,0,0,0),
 			Parent  = ContentPanel,
 			Visible = false,
-			Name    = "ItemContainer"
+			Name    = "ItemContainer",
+			Active  = false 
 		}), {
-			MakeElement("List", 0, 6),
+		MakeElement("List", 0, 6),
 			MakeElement("Padding", 15, 10, 10, 15)
 		}), "Main")
 
@@ -2260,25 +2264,38 @@ function OrionLib:MakeWindow(WindowConfig)
 				if not plrp then Align = Content Content = Text Text = id id = "" end
 				Align = Align or "Left"
 			
+				local isCenter = Align == "Center"
+				local isRight  = Align == "Right"
+			
+				local initH = plrp and (isCenter and 90 or 60) or 30
+			
+				local titleXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
+				local titleWOff = plrp and (isCenter and -24 or -72) or -12
+				local titleYOff = plrp and (isCenter and 76 or 10) or 10
+			
+				local contentXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
+				local contentWOff = plrp and (isCenter and -24 or -72) or -24
+				local contentYOff = plrp and (isCenter and 84 or 32) or 26
+			
 				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-					Size = UDim2.new(1, 0, 0, plrp and 60 or 30),
+					Size = UDim2.new(1, 0, 0, initH),
 					BackgroundTransparency = 0.7,
 					Parent = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
-						Size = UDim2.new(1, plrp and -72 or -12, 0, 14),
-						Position = UDim2.new(0, plrp and 62 or 12, 0, 10),
-						Font = Enum.Font.GothamBold,
-						Name = "Title",
-						TextWrapped = true, 
+						Size     = UDim2.new(1, titleWOff, 0, 14),
+						Position = UDim2.new(0, titleXOff, 0, titleYOff),
+						Font     = Enum.Font.GothamBold,
+						Name     = "Title",
+						TextWrapped   = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
 					}), "Text"),
 					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
-						Size = UDim2.new(1, plrp and -72 or -24, 0, 0),
-						Position = UDim2.new(0, plrp and 62 or 12, 0, plrp and 32 or 26),
-						Font = Enum.Font.GothamSemibold,
-						Name = "Content",
-						TextWrapped = true,
+						Size     = UDim2.new(1, contentWOff, 0, 0),
+						Position = UDim2.new(0, contentXOff, 0, contentYOff),
+						Font     = Enum.Font.GothamSemibold,
+						Name     = "Content",
+						TextWrapped   = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
 					}), "TextDark"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
@@ -2286,46 +2303,71 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				local OptBtn
 				if plrp then
-					OptBtn = AddThemeObject(SetProps(SetChildren(MakeElement("Button", Color3.fromRGB(40, 40, 40)), {
+					local imgPos = isCenter and UDim2.new(0.5, -30, 0, 8)
+								or isRight  and UDim2.new(1, -60, 0, 0)
+								or UDim2.new(0, 0, 0, 0)
+			
+					OptBtn = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(40, 40, 40)), {
+						Parent = ParagraphFrame,
+						Size   = UDim2.new(0, 60, 0, 60),
+						Position = imgPos,
+						BackgroundTransparency = 1,
+					}), {
 						MakeElement("Corner", 0, 6),
-						AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+						SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 							Size = UDim2.new(0, 50, 0, 50),
-							Position = UDim2.new(0, 5, 0, 5)
+							Position = UDim2.new(0, 5, 0, 5),
+							ClipsDescendants = true,
+							BackgroundTransparency = 1
 						}), {
-							SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. id .. "&width=420&height=420&format=png"), {
+							SetChildren(SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. id .. "&width=420&height=420&format=png"), {
 								Size = UDim2.new(1, 0, 1, 0),
 								BackgroundTransparency = 1
+							}), {
+								MakeElement("Corner", 0, 10)
 							}),
 							MakeElement("Corner", 1)
-						}), "Divider")
-					}), {
-						Parent = ParagraphFrame,
-						Size = UDim2.new(0, 60, 0, 60),
-						Position = UDim2.new(0, 0, 0, 0),
-						BackgroundTransparency = 1,
-						ClipsDescendants = true
-					}), "Divider")
+						})
+					})
 				end
 			
 				Relem(_tabName, Text, ParagraphFrame)
-				
+			
 				function updtsz()
 					if ParagraphFrame and ParagraphFrame.Parent then
 						local titleY = ParagraphFrame.Title.TextBounds.Y
-						local cntY = ParagraphFrame.Content.TextBounds.Y
-				
-						ParagraphFrame.Title.Size = UDim2.new(1, plrp and -72 or -12, 0, titleY)
-						ParagraphFrame.Content.Position = UDim2.new(0, plrp and 62 or 12, 0, 10 + titleY + 8)
-				
+						local cntY   = ParagraphFrame.Content.TextBounds.Y
+			
 						if plrp then
-							ParagraphFrame.Content.Size = UDim2.new(1, -72, 0, cntY)
-							local th = math.max(60, 10 + titleY + 8 + cntY + 10)
-							ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
-							if OptBtn then
-								OptBtn.Size = UDim2.new(0, 60, 0, th)
+							if isCenter then
+								ParagraphFrame.Title.Size     = UDim2.new(1, -24, 0, titleY)
+								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 76)
+								ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 76 + titleY + 8)
+								ParagraphFrame.Size = UDim2.new(1, 0, 0, math.max(90, 76 + titleY + 8 + cntY + 10))
+							elseif isRight then
+								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
+								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 10)
+								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
+								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
+								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
+								if OptBtn then
+									OptBtn.Size     = UDim2.new(0, 60, 0, th)
+									OptBtn.Position = UDim2.new(1, -60, 0, 0)
+								end
+							else
+								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
+								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, 62, 0, 10 + titleY + 8)
+								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
+								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
+								if OptBtn then OptBtn.Size = UDim2.new(0, 60, 0, th) end
 							end
 						else
-							ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, cntY)
+							ParagraphFrame.Title.Size     = UDim2.new(1, -12, 0, titleY)
+							ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
+							ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
 							ParagraphFrame.Size = UDim2.new(1, 0, 0, 10 + titleY + 8 + cntY + 10)
 						end
 					end
@@ -2353,8 +2395,17 @@ function OrionLib:MakeWindow(WindowConfig)
 					if newtext then ParagraphFrame.Title.Text = newtext end
 					if newcont then ParagraphFrame.Content.Text = newcont end
 					if newalin then
+						Align    = newalin
+						isCenter = newalin == "Center"
+						isRight  = newalin == "Right"
 						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
-						ParagraphFrame.Title.TextXAlignment = Enum.TextXAlignment[newalin]
+						ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
+						if OptBtn then
+							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8)
+										   or isRight  and UDim2.new(1, -60, 0, 0)
+										   or UDim2.new(0, 0, 0, 0)
+						end
+						updtsz()
 					end
 				end
 				return ParagraphFunction
