@@ -2259,6 +2259,10 @@ function OrionLib:MakeWindow(WindowConfig)
 				return labelfunc
 			end
 			
+			local function parsec(text)
+				return (text:gsub('<#(%x+)"([^"]+)">', '<font color="#%1">%2</font>'))
+			end
+			
 			function ElementFunction:AddParagraph(id, Text, Content, Align)
 				local plrp = tonumber(id) ~= nil
 				if not plrp then Align = Content Content = Text Text = id id = "" end
@@ -2287,7 +2291,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						Position = UDim2.new(0, titleXOff, 0, titleYOff),
 						Font     = Enum.Font.GothamBold,
 						Name     = "Title",
-						TextWrapped   = true,
+						TextWrapped    = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
 					}), "Text"),
 					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
@@ -2295,7 +2299,8 @@ function OrionLib:MakeWindow(WindowConfig)
 						Position = UDim2.new(0, contentXOff, 0, contentYOff),
 						Font     = Enum.Font.GothamSemibold,
 						Name     = "Content",
-						TextWrapped   = true,
+						TextWrapped    = true,
+						RichText       = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
 					}), "TextDark"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
@@ -2388,12 +2393,12 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 			
-				ParagraphFrame.Content.Text = Content
+				ParagraphFrame.Content.Text = parsec(Content) 
 			
 				local ParagraphFunction = {}
 				function ParagraphFunction:Set(newtext, newcont, newalin)
 					if newtext then ParagraphFrame.Title.Text = newtext end
-					if newcont then ParagraphFrame.Content.Text = newcont end
+					if newcont then ParagraphFrame.Content.Text = parsec(newcont) end
 					if newalin then
 						Align    = newalin
 						isCenter = newalin == "Center"
@@ -2401,9 +2406,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
 						ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
 						if OptBtn then
-							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8)
-										   or isRight  and UDim2.new(1, -60, 0, 0)
-										   or UDim2.new(0, 0, 0, 0)
+							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight  and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
 						end
 						updtsz()
 					end
