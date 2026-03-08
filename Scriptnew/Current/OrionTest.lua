@@ -897,17 +897,23 @@ function OrionLib:MakeWindow(WindowConfig)
         SearchSystem.butts[tabName] = tabButton
         Tabs[tabName] = tabButton
     end
-
-    local function Relem(tabName, elementName, elementFrame)
-        if not SearchSystem.elmnts[tabName] then
-            SearchSystem.elmnts[tabName] = {}
-        end
-        SearchSystem.elmnts[tabName][elementName] = {
-            frame          = elementFrame,
-            originalParent = elementFrame.Parent,
-            visible        = true
-        }
-    end
+	
+	local function Relem(tabName, elementName, elementFrame)
+		if not SearchSystem.elmnts[tabName] then
+			SearchSystem.elmnts[tabName] = {}
+		end
+		local key   = tostring(elementName)
+		local count = 1
+		while SearchSystem.elmnts[tabName][key] do
+			count = count + 1
+			key = string.format('%s-%d', tostring(elementName), count)
+		end
+		SearchSystem.elmnts[tabName][key] = {
+			frame          = elementFrame,
+			originalParent = elementFrame.Parent,
+			visible        = true
+		}
+	end
 
     local function Hlight(frame, highlight)
         if not frame then return end
@@ -1124,45 +1130,86 @@ function OrionLib:MakeWindow(WindowConfig)
             end
         end
     end
-
-    local function search(serchtext)
-        serchtext = string.lower(serchtext)
-
-        if serchtext == "" then
-            ClearR()
-            return
-        end
-
-        SearchSystem.isserch = true
-        SearchSystem.results = {}
-
-        local scores = {}
-        local btab   = nil
-        local bscore = 0
-
-        for tabName, _ in pairs(SearchSystem.elmnts) do
-            scores[tabName] = 0
-        end
-
-        for tabName, elements in pairs(SearchSystem.elmnts) do
-            for elementName, data in pairs(elements) do
-                if string.find(string.lower(elementName), serchtext) ~= nil then
-                    scores[tabName]  = scores[tabName] + 1
-                    SearchSystem.results[tabName] = SearchSystem.results[tabName] or {}
-                    SearchSystem.results[tabName][elementName] = data
-
-                    if scores[tabName] > bscore then
-                        bscore = scores[tabName]
-                        btab   = tabName
-                    end
-                end
-            end
-        end
-
-        if btab then
-            Gotab(btab)
-        end
-    end
+	
+	local function search(serchtext)
+		serchtext = string.lower(serchtext)
+	
+		if serchtext == "" then
+			ClearR()
+			return
+		end
+	
+		if #serchtext < 2 then
+			ClearR()
+			return
+		end
+	
+		SearchSystem.isserch = true
+		SearchSystem.results = {}
+	
+		local hasExact      = false
+		local hasStartsWith = false
+		local hasSubstring  = false
+	
+		for tabName, elements in pairs(SearchSystem.elmnts) do
+			for elementName, _ in pairs(elements) do
+				local lname = string.lower(elementName)
+				if lname == serchtext then
+					hasExact = true
+				elseif string.sub(lname, 1, #serchtext) == serchtext then
+					hasStartsWith = true
+				elseif string.find(lname, serchtext, 1, true) ~= nil then
+					hasSubstring = true
+				end
+			end
+		end
+	
+		local matchLevel = hasExact and "exact" or (hasStartsWith and "startswith" or (hasSubstring and "substring" or nil))
+		if not matchLevel then return end
+	
+		local scores = {}
+		for tabName, _ in pairs(SearchSystem.elmnts) do
+			scores[tabName] = 0
+		end
+	
+		for tabName, elements in pairs(SearchSystem.elmnts) do
+			for elementName, data in pairs(elements) do
+				local lname   = string.lower(elementName)
+				local matches = false
+				if matchLevel == "exact" then
+					matches = lname == serchtext
+				elseif matchLevel == "startswith" then
+					matches = string.sub(lname, 1, #serchtext) == serchtext
+				else
+					matches = string.find(lname, serchtext, 1, true) ~= nil
+				end
+				if matches then
+					scores[tabName] = scores[tabName] + 1
+					SearchSystem.results[tabName] = SearchSystem.results[tabName] or {}
+					SearchSystem.results[tabName][elementName] = data
+				end
+			end
+		end
+	
+		local btab   = nil
+		local bscore = 0
+	
+		local currtab = SearchSystem.actvtab
+		if currtab and scores[currtab] and scores[currtab] > 0 then
+			btab = currtab
+		else
+			for tabName, score in pairs(scores) do
+				if score > bscore then
+					bscore = score
+					btab   = tabName
+				end
+			end
+		end
+	
+		if btab then
+			Gotab(btab)
+		end
+	end
 
     local WindowName = AddThemeObject(SetProps(MakeElement("Label", WindowConfig.Name, 14), {
         Size         = UDim2.new(1, -90, 1, 0),
