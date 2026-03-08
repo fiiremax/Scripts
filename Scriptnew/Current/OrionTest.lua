@@ -4237,20 +4237,6 @@ function OrionLib:MakeWindow(WindowConfig)
 					OrionLib.SelectedTheme = "Default"
 					OrionLib:SetTheme()
 				end
-			
-				task.spawn(function()
-					local last = WindowConfig.Name
-					while MainWindow and MainWindow.Parent do
-						task.wait(0.5)
-						if WindowConfig.Name ~= last then
-							last = WindowConfig.Name
-							OrionLib.Flags["SmartThemeName"].Value = last
-							if saveToggle.Value then
-								SaveCfg(game.GameId)
-							end
-						end
-					end
-				end)
 			end
 
 			for k, fn in pairs(ElementFunction) do
