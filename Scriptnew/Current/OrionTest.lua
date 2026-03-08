@@ -260,7 +260,7 @@ function AddThemeObject(Object, Type)
     Total.AddThemeObject = Total.AddThemeObject + 1
     table.insert(OrionLib.ThemeObjects[Type], Object)
 
-    local themeColor = OrionLib.Themes[OrionLib.SelectedTheme][Type] or OrionLib.Themes[OrionLib.SelectedTheme]["Accent"]  -- fallback pra Accent se não existir o tipo
+    local themeColor = OrionLib.Themes[OrionLib.SelectedTheme][Type] or OrionLib.Themes[OrionLib.SelectedTheme]["Accent"]
 
     local property
 
@@ -636,6 +636,7 @@ function OrionLib:MakeWindow(WindowConfig)
     local FirstTab = true
     local minimized = false
     local UIHidden  = false
+    local tabOrderCounter = 0
 
     WindowConfig = WindowConfig or {}
     WindowConfig.Name            = WindowConfig.Name
@@ -671,91 +672,93 @@ function OrionLib:MakeWindow(WindowConfig)
     local nmpg = nil
     local SrchLn  = nil
     local Nmeline = nil
-
-    function OrionLib:SetTheme()
-        local themeData = self.Themes[self.SelectedTheme]
-        if not themeData then return end
-
-        local updates = {}
-        local count   = 0
-
-        for typeName, objects in next, self.ThemeObjects do
-            local color = themeData[typeName]
-            if color then
-                for i = 1, #objects do
-                    local obj = objects[i]
-                    if obj and obj.Parent then
-                        local prop = cch[obj]
-                        if not prop then
-                            prop = ReturnProperty(obj)
-                            if prop then
-                                cch[obj] = prop
-                            else
-                                continue
-                            end
-                        end
-                        count = count + 1
-                        updates[count] = {obj, prop, color}
-                    end
-                end
-            end
-        end
-
-        for i = 1, count do
-            local d = updates[i]
-            d[1][d[2]] = d[3]
-        end
-
-        if self.Toggles then
-            for _, toggle in ipairs(self.Toggles) do
-                if toggle and toggle.Box and toggle.Box.Parent then
-                    local accolor = toggle.uccolor and toggle.ccolor or themeData.Accent
-
-                    if toggle.Value then
-                        toggle.Box.BackgroundColor3 = accolor
-                        if toggle.Box.Stroke then
-                            toggle.Box.Stroke.Color = accolor
-                        end
-                    else
-                        toggle.Box.BackgroundColor3 = themeData.Divider
-                        if toggle.Box.Stroke then
-                            toggle.Box.Stroke.Color = themeData.Stroke
-                        end
-                    end
-                end
-            end
-        end
-
-        if self.Dropdowns then
-            for _, dropdown in ipairs(self.Dropdowns) do
-                if dropdown and dropdown.Buttons then
-                    for value, btn in pairs(dropdown.Buttons) do
-                        if btn and btn.Parent and btn:FindFirstChild("Checkbox") then
-                            local sel = table.find(dropdown.Value, value)
-                            btn.Checkbox.BackgroundColor3 = sel and themeData.Accent or themeData.Divider
-                            if btn.Checkbox:FindFirstChild("Stroke") then
-                                btn.Checkbox.Stroke.Color = sel and themeData.Accent or themeData.Stroke
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        if resizebtt then
-            resizebtt.BackgroundColor3 = themeData.Main
-        end
-
-        if nmpg and nmpg.Parent then
-            nmpg.BackgroundColor3 = themeData.Accent
-        end
-        if SrchLn and SrchLn.Parent then
-            SrchLn.BackgroundColor3 = themeData.Accent
-        end
-        if Nmeline and Nmeline.Parent then
-            Nmeline.BackgroundColor3 = themeData.Accent
-        end
-    end
+	
+	function OrionLib:SetTheme()
+		local themeData = self.Themes[self.SelectedTheme]
+		if not themeData then return end
+	
+		local updates = {}
+		local count   = 0
+	
+		for typeName, objects in next, self.ThemeObjects do
+			local color = themeData[typeName]
+			if not color and typeName == "Accent2" then color = themeData.Accent end
+			if color then
+				for i = 1, #objects do
+					local obj = objects[i]
+					if obj and obj.Parent then
+						local prop = cch[obj]
+						if not prop then
+							if typeName == "Accent2" then
+								prop = obj:IsA("UIStroke") and "Color" or "BackgroundColor3"
+							else
+								prop = ReturnProperty(obj)
+							end
+							if prop then
+								cch[obj] = prop
+							else
+								continue
+							end
+						end
+						count = count + 1
+						updates[count] = {obj, prop, color}
+					end
+				end
+			end
+		end
+	
+		for i = 1, count do
+			local d = updates[i]
+			d[1][d[2]] = d[3]
+		end
+		
+		if self.Toggles then
+			for _, toggle in ipairs(self.Toggles) do
+				if toggle and toggle.Box and toggle.Box.Parent then
+					local accolor = toggle.uccolor and toggle.ccolor or themeData.Accent
+					if toggle.boxTween then toggle.boxTween:Cancel() end
+					if toggle.strokeTween then toggle.strokeTween:Cancel() end
+					toggle.Box.BackgroundColor3 = toggle.Value and accolor or themeData.Divider
+					if toggle.Box:FindFirstChild("Stroke") then
+						toggle.Box.Stroke.Color = toggle.Value and accolor or themeData.Stroke
+					end
+					if toggle.Box:FindFirstChild("Ico") then
+						toggle.Box.Ico.ImageTransparency = toggle.Value and 0 or 1
+					end
+				end
+			end
+		end
+	
+		if self.Dropdowns then
+			for _, dropdown in ipairs(self.Dropdowns) do
+				if dropdown and dropdown.Buttons then
+					for value, btn in pairs(dropdown.Buttons) do
+						if btn and btn.Parent and btn:FindFirstChild("Checkbox") then
+							local sel = table.find(dropdown.Value, value)
+							btn.Checkbox.BackgroundColor3 = sel and themeData.Accent or themeData.Divider
+							if btn.Checkbox:FindFirstChild("Stroke") then
+								btn.Checkbox.Stroke.Color = sel and themeData.Accent or themeData.Stroke
+							end
+						end
+					end
+				end
+			end
+		end
+	
+		if resizebtt then
+			resizebtt.BackgroundColor3 = themeData.Main
+		end
+	
+		if nmpg and nmpg.Parent then
+			nmpg.BackgroundColor3 = themeData.Accent
+		end
+		if SrchLn and SrchLn.Parent then
+			SrchLn.BackgroundColor3 = themeData.Accent
+		end
+		if Nmeline and Nmeline.Parent then
+			Nmeline.BackgroundColor3 = themeData.Accent
+		end
+	end
 
     local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 0), {
         Size     = UDim2.new(1, 0, 1, -58),
@@ -1873,9 +1876,12 @@ function OrionLib:MakeWindow(WindowConfig)
 		})
 		AddThemeObject(ABar, "Accent")
 
+		tabOrderCounter = tabOrderCounter + 1
+
 		local TabFrame = SetChildren(SetProps(MakeElement("Button"), {
 			Size = UDim2.new(1,2,0,36),
-			Parent = TabHolder
+			Parent = TabHolder,
+			LayoutOrder = tabOrderCounter
 		}), {
 			AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255,255,255), 0, 6), {
 				Size = UDim2.new(1,0,1,0),
@@ -1892,14 +1898,91 @@ function OrionLib:MakeWindow(WindowConfig)
 			}), "Text")
 		})
 
+		local Datc   = false
+		local dtrack = false
+		local dconn  = nil
+		local ddend  = nil
+		
+		local function ctdrag(wasClick)
+			dtrack = false
+			if dconn then dconn(); dconn = nil end
+			if ddend then ddend(); ddend = nil end
+		
+			if Datc then
+				Datc = false
+				local isActive = SearchSystem.actvtab == TabConfig.Name
+				local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+				vgs.TS:Create(TabFrame.Highlight, ti, {
+					BackgroundColor3       = OrionLib.Themes[OrionLib.SelectedTheme].Second,
+					BackgroundTransparency = isActive and 0.82 or 1
+				}):Play()
+				vgs.TS:Create(TabFrame.Ico, ti, { ImageTransparency = isActive and 0 or 0.55 }):Play()
+			elseif wasClick then
+				Gotab(TabConfig.Name)
+			end
+		end
+		
+		AddConnection(TabFrame.InputBegan, function(input)
+			if input.UserInputType ~= Enum.UserInputType.MouseButton1 or dtrack then return end
+			dtrack = true
+			Datc   = false
+			local startY = input.Position.Y
+		
+			_, dconn = AddConnection(vgs.UIS.InputChanged, function(inp)
+				if inp.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+		
+				if not Datc and math.abs(inp.Position.Y - startY) > 8 then
+					Datc = true
+					tttip.Visible = false
+					local ti = TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+					vgs.TS:Create(TabFrame.Highlight, ti, {
+						BackgroundColor3       = OrionLib.Themes[OrionLib.SelectedTheme].Accent,
+						BackgroundTransparency = 0.55
+					}):Play()
+					vgs.TS:Create(TabFrame.Ico, ti, { ImageTransparency = 0 }):Play()
+				end
+		
+				if not Datc then return end
+				local habt = TabHolder.AbsolutePosition.Y
+				local canvy    = TabHolder.CanvasPosition.Y
+				local msrely  = inp.Position.Y - habt + canvy
+				local tabs = {}
+				for _, child in pairs(TabHolder:GetChildren()) do
+					if child:IsA("TextButton") and child ~= TabFrame then
+						table.insert(tabs, {
+							frame = child,
+							midY  = child.AbsolutePosition.Y - habt + canvy + child.AbsoluteSize.Y * 0.5,
+							lo    = child.LayoutOrder
+						})
+					end
+				end
+				table.sort(tabs, function(a, b) return a.lo < b.lo end)
+				local insertPos = #tabs + 1
+				for i, t in ipairs(tabs) do if msrely < t.midY then insertPos = i break end end
+				local lo = 1
+				for i, t in ipairs(tabs) do
+					if i == insertPos then lo = lo + 1 end
+					t.frame.LayoutOrder = lo
+					lo = lo + 1
+				end
+				TabFrame.LayoutOrder = insertPos
+			end)
+		
+			_, ddend = AddConnection(vgs.UIS.InputEnded, function(inp)
+				if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+				ctdrag(not Datc)
+			end)
+		end)
+
 		AddConnection(TabFrame.MouseEnter, function()
+			if Datc then return end
 			tttip.Text = TabConfig.Name
 			local absPos = TabFrame.AbsolutePosition
 			local mainPos = MainWindow.AbsolutePosition
 			local relY = absPos.Y - mainPos.Y + (TabFrame.AbsoluteSize.Y / 2) - 13
 			tttip.Position = UDim2.new(0, 50, 0, relY)
 			tttip.Visible = true
-			if TabFrame.Ico.ImageTransparency ~= 0 then
+			if SearchSystem.actvtab ~= TabConfig.Name then
 				vgs.TS:Create(TabFrame.Highlight, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0.88}):Play()
 				vgs.TS:Create(TabFrame.Ico, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0.25}):Play()
 			end
@@ -1907,7 +1990,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 		AddConnection(TabFrame.MouseLeave, function()
 			tttip.Visible = false
-			if TabFrame.Ico.ImageTransparency ~= 0 then
+			if Datc then return end
+			if SearchSystem.actvtab ~= TabConfig.Name then
 				vgs.TS:Create(TabFrame.Highlight, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
 				vgs.TS:Create(TabFrame.Ico, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0.55}):Play()
 			end
@@ -1944,15 +2028,12 @@ function OrionLib:MakeWindow(WindowConfig)
 				Position = UDim2.new(0,0,0.5,-9), BackgroundTransparency = 0
 			}):Play()
 			Container.Visible = true
+			SearchSystem.actvtab = TabConfig.Name
 			if EmptyFrame and EmptyFrame.Parent then
 				vgs.TS:Create(EmptyFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
 				task.delay(0.2, function() if EmptyFrame and EmptyFrame.Parent then EmptyFrame.Visible = false end end)
 			end
 		end
-
-		AddConnection(TabFrame.MouseButton1Click, function()
-			Gotab(TabConfig.Name)
-		end)
 
 		local function Getelmnts(ItemParent, _tabName)
 			local lreg = nil
@@ -2330,11 +2411,13 @@ function OrionLib:MakeWindow(WindowConfig)
 				ToggleConfig.Save = ToggleConfig.Save or false
 			
 				local Toggle = {
-					Value = ToggleConfig.Default, 
-					Save = ToggleConfig.Save, 
+					Value = ToggleConfig.Default,
+					Save = ToggleConfig.Save,
 					Box = nil,
-					uccolor = ToggleConfig.Color ~= nil, 
-					ccolor = ToggleConfig.Color  
+					uccolor = ToggleConfig.Color ~= nil,
+					ccolor = ToggleConfig.Color,
+					boxTween = nil,
+					strokeTween = nil
 				}
 			
 				local Click = SetProps(MakeElement("Button"), {
@@ -2377,28 +2460,32 @@ function OrionLib:MakeWindow(WindowConfig)
 					ToggleBox,
 					Click
 				}), "Second")
-				
+			
 				Relem(_tabName, ToggleConfig.Name, ToggleFrame)
-				
+			
 				function Toggle:Set(Value, Silent)
 					Toggle.Value = Value
-					local accolor = Toggle.uccolor and Toggle.ccolor or OrionLib.Themes[OrionLib.SelectedTheme].Accent
-					
-					vgs.TS:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-						BackgroundColor3 = Toggle.Value and accolor or OrionLib.Themes[OrionLib.SelectedTheme].Divider
-					}):Play()
-					vgs.TS:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-						Color = Toggle.Value and accolor or OrionLib.Themes[OrionLib.SelectedTheme].Stroke
-					}):Play()
-					vgs.TS:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-						ImageTransparency = Toggle.Value and 0 or 1, 
+					local ac = Toggle.uccolor and Toggle.ccolor or OrionLib.Themes[OrionLib.SelectedTheme].Accent
+					local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+			
+					Toggle.boxTween = vgs.TS:Create(ToggleBox, ti, {
+						BackgroundColor3 = Toggle.Value and ac or OrionLib.Themes[OrionLib.SelectedTheme].Divider
+					})
+					Toggle.strokeTween = vgs.TS:Create(ToggleBox.Stroke, ti, {
+						Color = Toggle.Value and ac or OrionLib.Themes[OrionLib.SelectedTheme].Stroke
+					})
+					Toggle.boxTween:Play()
+					Toggle.strokeTween:Play()
+			
+					vgs.TS:Create(ToggleBox.Ico, ti, {
+						ImageTransparency = Toggle.Value and 0 or 1,
 						Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)
 					}):Play()
-					
+			
 					if not Silent then
 						ToggleConfig.Callback(Toggle.Value)
 					end
-				end    
+				end
 			
 				AddConnection(Click.MouseEnter, function()
 					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
@@ -2430,9 +2517,9 @@ function OrionLib:MakeWindow(WindowConfig)
 					OrionLib.Flags[ToggleConfig.Flag] = Toggle
 				end
 				table.insert(OrionLib.Toggles, Toggle)
-				
+			
 				Toggle:Set(Toggle.Value, true)
-				
+			
 				return Toggle
 			end
 			
@@ -4071,7 +4158,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Colorpicker.Value = Value
 					ColorH, ColorS, ColorV = Color3.toHSV(Value)
 					ColorpickerBox.BackgroundColor3 = Value
-					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1) --Color3.fromHSV(ColorH, 1, 1)
+					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
 					ColorSelection.Position = UDim2.new(ColorS, 0, 1 - ColorV)
 					HueSelection.Position = UDim2.new(0.5, 0, 1 - ColorH)
 					ColorpickerConfig.Callback(Value)
@@ -4105,29 +4192,65 @@ function OrionLib:MakeWindow(WindowConfig)
 			end
 			function ElementFunction:AddSmartTheme()
 				local gersec = self
-				
-				
-				gersec:AddColorpicker({
-					Name = "Base Color",
-					Default = OrionLib.Themes[OrionLib.SelectedTheme].Main,
-					Mode = 2,
+			
+				local saveToggle = gersec:AddToggle({
+					Name     = "Save Theme & Name",
+					Default  = false,
+					Flag     = "SmartThemeSave",
+					Save     = true,
+					Callback = function(val) end
+				})
+			
+				local tmcp = gersec:AddColorpicker({
+					Name     = "Base Color",
+					Default  = OrionLib.Themes[OrionLib.SelectedTheme].Main,
+					Flag     = "SmartThemeColor",
+					Save     = true,
+					Mode     = 2,
 					Callback = function(Value)
 						local newTheme = OrionLib:GenTheme(Value)
 						OrionLib.Themes.Custom = newTheme
 						OrionLib.SelectedTheme = "Custom"
 						OrionLib:SetTheme()
+						if saveToggle.Value then
+							SaveCfg(game.GameId)
+						end
 					end
 				})
-				
+			
 				gersec:AddButton({
-					Name = "Reset Theme",
+					Name     = "Reset Theme",
 					Callback = function()
-						OrionLib.SelectedTheme = "Default"
-						OrionLib:SetTheme()
+						tmcp:Set(OrionLib.Themes.Default.Main)
+						if saveToggle.Value then
+							SaveCfg(game.GameId)
+						end
 					end
 				})
-				OrionLib.SelectedTheme = "Default"
-				OrionLib:SetTheme()
+			
+				if OrionLib.Flags["SmartThemeColor"] then
+					local c = OrionLib.Flags["SmartThemeColor"].Value
+					OrionLib.Themes.Custom = OrionLib:GenTheme(c)
+					OrionLib.SelectedTheme = "Custom"
+					OrionLib:SetTheme()
+				else
+					OrionLib.SelectedTheme = "Default"
+					OrionLib:SetTheme()
+				end
+			
+				task.spawn(function()
+					local last = WindowConfig.Name
+					while MainWindow and MainWindow.Parent do
+						task.wait(0.5)
+						if WindowConfig.Name ~= last then
+							last = WindowConfig.Name
+							OrionLib.Flags["SmartThemeName"].Value = last
+							if saveToggle.Value then
+								SaveCfg(game.GameId)
+							end
+						end
+					end
+				end)
 			end
 
 			for k, fn in pairs(ElementFunction) do
@@ -4161,7 +4284,6 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 			return ElementFunction   
 		end	
-		
 
 		local ElementFunction = {}
 		
