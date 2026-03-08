@@ -2263,157 +2263,162 @@ function OrionLib:MakeWindow(WindowConfig)
 				return (text:gsub('<#(%x+)"([^"]+)">', '<font color="#%1">%2</font>'))
 			end
 			
-			function ElementFunction:AddParagraph(id, Text, Content, Align)
-				local plrp = tonumber(id) ~= nil
-				if not plrp then Align = Content Content = Text Text = id id = "" end
-				Align = Align or "Left"
-			
-				local isCenter = Align == "Center"
-				local isRight  = Align == "Right"
-			
-				local initH = plrp and (isCenter and 90 or 60) or 30
-			
-				local titleXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
-				local titleWOff = plrp and (isCenter and -24 or -72) or -12
-				local titleYOff = plrp and (isCenter and 76 or 10) or 10
-			
-				local contentXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
-				local contentWOff = plrp and (isCenter and -24 or -72) or -24
-				local contentYOff = plrp and (isCenter and 84 or 32) or 26
-			
-				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-					Size = UDim2.new(1, 0, 0, initH),
-					BackgroundTransparency = 0.7,
-					Parent = ItemParent
-				}), {
-					AddThemeObject(SetProps(MakeElement("Label", parsec(Text), 15), {
-						Size     = UDim2.new(1, titleWOff, 0, 14),
-						Position = UDim2.new(0, titleXOff, 0, titleYOff),
-						Font     = Enum.Font.GothamBold,
-						Name     = "Title",
-						TextWrapped    = true,
-						RichText       = true,
-						TextXAlignment = Enum.TextXAlignment[Align]
-					}), "Text"),
-					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
-						Size     = UDim2.new(1, contentWOff, 0, 0),
-						Position = UDim2.new(0, contentXOff, 0, contentYOff),
-						Font     = Enum.Font.GothamSemibold,
-						Name     = "Content",
-						TextWrapped    = true,
-						RichText       = true,
-						TextXAlignment = Enum.TextXAlignment[Align]
-					}), "TextDark"),
-					AddThemeObject(MakeElement("Stroke"), "Stroke")
-				}), "Second")
-			
-				local OptBtn
-				if plrp then
-					local imgPos = isCenter and UDim2.new(0.5, -30, 0, 8)
-								or isRight  and UDim2.new(1, -60, 0, 0)
-								or UDim2.new(0, 0, 0, 0)
-			
-					OptBtn = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(40, 40, 40)), {
-						Parent = ParagraphFrame,
-						Size   = UDim2.new(0, 60, 0, 60),
-						Position = imgPos,
-						BackgroundTransparency = 1,
+				function ElementFunction:AddParagraph(id, Text, Content, Align)
+					local plrp = tonumber(id) ~= nil
+					if not plrp then Align = Content Content = Text Text = id id = "" end
+					Align = Align or "Left"
+				
+					local isCenter = Align == "Center"
+					local isRight  = Align == "Right"
+				
+					local initH = plrp and (isCenter and 90 or 60) or 30
+				
+					local titleXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
+					local titleWOff = plrp and (isCenter and -24 or -72) or -12
+					local titleYOff = plrp and (isCenter and 30 or 10) or 10
+				
+					local contentXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
+					local contentWOff = plrp and (isCenter and -24 or -72) or -24
+					local contentYOff = plrp and (isCenter and 84 or 32) or 26
+				
+					local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+						Size = UDim2.new(1, 0, 0, initH),
+						BackgroundTransparency = 0.7,
+						Parent = ItemParent
 					}), {
-						MakeElement("Corner", 0, 6),
-						SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
-							Size = UDim2.new(0, 50, 0, 50),
-							Position = UDim2.new(0, 5, 0, 5),
-							ClipsDescendants = true,
-							BackgroundTransparency = 1
+						AddThemeObject(SetProps(MakeElement("Label", parsec(Text), 15), {
+							Size     = UDim2.new(1, titleWOff, 0, 14),
+							Position = UDim2.new(0, titleXOff, 0, titleYOff),
+							Font     = Enum.Font.GothamBold,
+							Name     = "Title",
+							TextWrapped    = true,
+							RichText       = true,
+							TextXAlignment = Enum.TextXAlignment[Align]
+						}), "Text"),
+						AddThemeObject(SetProps(MakeElement("Label", "", 13), {
+							Size     = UDim2.new(1, contentWOff, 0, 0),
+							Position = UDim2.new(0, contentXOff, 0, contentYOff),
+							Font     = Enum.Font.GothamSemibold,
+							Name     = "Content",
+							TextWrapped    = true,
+							RichText       = true,
+							TextXAlignment = Enum.TextXAlignment[Align]
+						}), "TextDark"),
+						AddThemeObject(MakeElement("Stroke"), "Stroke")
+					}), "Second")
+				
+					local OptBtn
+					if plrp then
+						local imgPos = isCenter and UDim2.new(0.5, -30, 0, 0)
+									or isRight  and UDim2.new(1, -60, 0, 0)
+									or UDim2.new(0, 0, 0, 0)
+				
+						OptBtn = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(40, 40, 40)), {
+							Parent = ParagraphFrame,
+							Size   = UDim2.new(0, 60, 0, 60),
+							Position = imgPos,
+							BackgroundTransparency = 1,
 						}), {
-							SetChildren(SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. id .. "&width=420&height=420&format=png"), {
-								Size = UDim2.new(1, 0, 1, 0),
+							MakeElement("Corner", 0, 6),
+							SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+								Size = UDim2.new(0, 50, 0, 50),
+								Position = UDim2.new(0, 5, 0, 5),
+								ClipsDescendants = true,
 								BackgroundTransparency = 1
 							}), {
-								MakeElement("Corner", 0, 10)
-							}),
-							MakeElement("Corner", 1)
+								SetChildren(SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. id .. "&width=420&height=420&format=png"), {
+									Size = UDim2.new(1, 0, 1, 0),
+									BackgroundTransparency = 1
+								}), {
+									MakeElement("Corner", 0, 10)
+								}),
+								MakeElement("Corner", 1)
+							})
 						})
-					})
-				end
-			
-				Relem(_tabName, Text, ParagraphFrame)
-			
-				function updtsz()
-					if ParagraphFrame and ParagraphFrame.Parent then
-						local titleY = ParagraphFrame.Title.TextBounds.Y
-						local cntY   = ParagraphFrame.Content.TextBounds.Y
-			
-						if plrp then
-							if isCenter then
-								ParagraphFrame.Title.Size     = UDim2.new(1, -24, 0, titleY)
-								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 76)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 76 + titleY + 8)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, math.max(90, 76 + titleY + 8 + cntY + 10))
-							elseif isRight then
-								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
-								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 10)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
-								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
-								if OptBtn then
-									OptBtn.Size     = UDim2.new(0, 60, 0, th)
-									OptBtn.Position = UDim2.new(1, -60, 0, 0)
+					end
+				
+					Relem(_tabName, Text, ParagraphFrame)
+				
+					function updtsz()
+						if ParagraphFrame and ParagraphFrame.Parent then
+							local titleY = ParagraphFrame.Title.TextBounds.Y
+							local cntY = Content ~= nil and ParagraphFrame.Content.TextBounds.Y or -8
+				
+							if plrp then
+								if isCenter then
+									ParagraphFrame.Title.Size     = UDim2.new(1, -24, 0, titleY)
+									ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 76)
+									ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
+									ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 76 + titleY + 8)
+									ParagraphFrame.Size = UDim2.new(1, 0, 0, math.max(90, 76 + titleY + 8 + cntY + 10))
+								elseif isRight then
+									ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
+									ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 10)
+									ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
+									ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
+									local th = math.max(60, 10 + titleY + 8 + cntY + 10)
+									ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
+									if OptBtn then
+										OptBtn.Size     = UDim2.new(0, 60, 0, th)
+										OptBtn.Position = UDim2.new(1, -60, 0, 0)
+									end
+								else
+									ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
+									ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
+									ParagraphFrame.Content.Position = UDim2.new(0, 62, 0, 10 + titleY + 8)
+									local th = math.max(60, 10 + titleY + 8 + cntY + 10)
+									ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
+									if OptBtn then OptBtn.Size = UDim2.new(0, 60, 0, th) end
 								end
 							else
-								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 62, 0, 10 + titleY + 8)
-								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
-								if OptBtn then OptBtn.Size = UDim2.new(0, 60, 0, th) end
+								ParagraphFrame.Title.Size     = UDim2.new(1, -12, 0, titleY)
+								ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
+								ParagraphFrame.Size = UDim2.new(1, 0, 0, 10 + titleY + 8 + cntY + 10)
 							end
-						else
-							ParagraphFrame.Title.Size     = UDim2.new(1, -12, 0, titleY)
-							ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
-							ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
-							ParagraphFrame.Size = UDim2.new(1, 0, 0, 10 + titleY + 8 + cntY + 10)
 						end
 					end
-				end
-			
-				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), updtsz)
-				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("TextBounds"), updtsz)
-				AddConnection(ParagraphFrame.Title:GetPropertyChangedSignal("TextBounds"), updtsz)
-			
-				local rsconn = AddConnection(MainWindow:GetPropertyChangedSignal("Size"), function()
-					task.wait()
-					updtsz()
-				end)
-			
-				AddConnection(ParagraphFrame.Destroying, function()
-					if rsconn and rsconn.Connected then
-						rsconn:Disconnect()
-					end
-				end)
-			
-				ParagraphFrame.Content.Text = parsec(Content)
-			
-				local ParagraphFunction = {}
-				function ParagraphFunction:Set(newtext, newcont, newalin)
-					if newtext then ParagraphFrame.Title.Text = parsec(newtext) end
-					if newcont then ParagraphFrame.Content.Text = parsec(newcont) end
-					if newalin then
-						Align    = newalin
-						isCenter = newalin == "Center"
-						isRight  = newalin == "Right"
-						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
-						ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
-						if OptBtn then
-							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
-						end
+				
+					AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), updtsz)
+					AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("TextBounds"), updtsz)
+					AddConnection(ParagraphFrame.Title:GetPropertyChangedSignal("TextBounds"), updtsz)
+				
+					local rsconn = AddConnection(MainWindow:GetPropertyChangedSignal("Size"), function()
+						task.wait()
 						updtsz()
+					end)
+				
+					AddConnection(ParagraphFrame.Destroying, function()
+						if rsconn and rsconn.Connected then
+							rsconn:Disconnect()
+						end
+					end)
+				
+					ParagraphFrame.Content.Text = Content ~= nil and parsec(Content) or ""
+					ParagraphFrame.Content.Visible = Content ~= nil
+				
+					local ParagraphFunction = {}
+					function ParagraphFunction:Set(newtext, newcont, newalin)
+						if newtext then ParagraphFrame.Title.Text = parsec(newtext) end
+						if newcont ~= nil then 
+							Content = newcont  
+							ParagraphFrame.Content.Text = parsec(newcont)
+							ParagraphFrame.Content.Visible = true
+						end
+						if newalin then
+							Align    = newalin
+							isCenter = newalin == "Center"
+							isRight  = newalin == "Right"
+							ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
+							ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
+							if OptBtn then
+								OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
+							end
+							updtsz()
+						end
 					end
+					return ParagraphFunction
 				end
-				return ParagraphFunction
-			end
 			
 			function ElementFunction:AddButton(ButtonConfig)
 				ButtonConfig = ButtonConfig or {}
