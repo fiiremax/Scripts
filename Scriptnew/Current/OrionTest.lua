@@ -2286,12 +2286,13 @@ function OrionLib:MakeWindow(WindowConfig)
 					BackgroundTransparency = 0.7,
 					Parent = ItemParent
 				}), {
-					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
+					AddThemeObject(SetProps(MakeElement("Label", parsec(Text), 15), {
 						Size     = UDim2.new(1, titleWOff, 0, 14),
 						Position = UDim2.new(0, titleXOff, 0, titleYOff),
 						Font     = Enum.Font.GothamBold,
 						Name     = "Title",
 						TextWrapped    = true,
+						RichText       = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
 					}), "Text"),
 					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
@@ -2393,11 +2394,11 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 			
-				ParagraphFrame.Content.Text = parsec(Content) 
+				ParagraphFrame.Content.Text = parsec(Content)
 			
 				local ParagraphFunction = {}
 				function ParagraphFunction:Set(newtext, newcont, newalin)
-					if newtext then ParagraphFrame.Title.Text = newtext end
+					if newtext then ParagraphFrame.Title.Text = parsec(newtext) end
 					if newcont then ParagraphFrame.Content.Text = parsec(newcont) end
 					if newalin then
 						Align    = newalin
@@ -2406,7 +2407,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
 						ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
 						if OptBtn then
-							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight  and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
+							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
 						end
 						updtsz()
 					end
