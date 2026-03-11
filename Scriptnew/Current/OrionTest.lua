@@ -4318,13 +4318,6 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				})
 				
-				gersec:AddToggle({ 
-					Name     = "Save Theme & Name",
-					Default  = false,
-					Flag     = "SmartThemeSave",
-					Save     = true,
-					Callback = val
-				})
 				
 				gersec:AddButton({
 					Name     = "Reset Theme",
@@ -4334,6 +4327,14 @@ function OrionLib:MakeWindow(WindowConfig)
 							SaveCfg(game.GameId)
 						end
 					end
+				})
+				gersec:AddSection()
+				gersec:AddToggle({ 
+					Name     = "Save UI Configs",
+					Default  = false,
+					Flag     = "SmartThemeSave",
+					Save     = true,
+					Callback = val
 				})
 				
 				if OrionLib.Flags["SmartThemeColor"] then
