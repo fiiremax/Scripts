@@ -4299,8 +4299,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			end
 			function ElementFunction:AddSmartTheme()
 				local gersec = self
-				local svtg
-			
+				local val
 				
 				local tmcp = gersec:AddColorpicker({
 					Name     = "Base Color",
@@ -4313,18 +4312,18 @@ function OrionLib:MakeWindow(WindowConfig)
 						OrionLib.Themes.Custom = newth
 						OrionLib.SelectedTheme = "Custom"
 						OrionLib:SetTheme()
-						if svtg.Value then
+						if val then
 							SaveCfg(game.GameId)
 						end
 					end
 				})
 				
-				svtg = gersec:AddToggle({ 
+				gersec:AddToggle({ 
 					Name     = "Save Theme & Name",
 					Default  = false,
 					Flag     = "SmartThemeSave",
 					Save     = true,
-					Callback = function(val) end
+					Callback = val
 				})
 				
 				gersec:AddButton({
