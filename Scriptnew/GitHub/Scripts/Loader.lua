@@ -3467,7 +3467,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				Relem(_tabName, TextboxConfig.Name, TextboxFrame)
 			
-				function updW()
+				local function updW()
 					local mw = math.max(24, TextboxFrame.AbsoluteSize.X - 12 - ContentLabel.TextBounds.X - 20)
 					TextContainer.Size = UDim2.new(0, math.clamp(TextboxActual.TextBounds.X + 16, 24, mw), 0, 24)
 				end
@@ -3501,6 +3501,30 @@ function OrionLib:MakeWindow(WindowConfig)
 				AddConnection(Click.MouseButton1Down, function()
 					vgs.TS:Create(TextboxFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
 				end)
+			
+				local textboxfunction = {}
+			
+				function textboxfunction:Set(newText)
+					TextboxActual.Text = newText
+				end
+			
+				function textboxfunction:toggle()
+					TextboxFrame.Visible = not TextboxFrame.Visible
+					if SearchSystem.elmnts[_tabName] and SearchSystem.elmnts[_tabName][TextboxConfig.Name] then
+						SearchSystem.elmnts[_tabName][TextboxConfig.Name].visible = TextboxFrame.Visible
+					end
+				end
+			
+				function textboxfunction:remove()
+					if SearchSystem.elmnts[_tabName] then
+						SearchSystem.elmnts[_tabName][TextboxConfig.Name] = nil
+					end
+					if TextboxFrame and TextboxFrame.Parent then
+						TextboxFrame:Destroy()
+					end
+				end
+			
+				return textboxfunction
 			end
 
 			function ElementFunction:AddColorpicker(ColorpickerConfig)

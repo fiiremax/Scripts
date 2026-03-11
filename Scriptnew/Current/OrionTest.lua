@@ -4318,7 +4318,6 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				})
 				
-				
 				gersec:AddButton({
 					Name     = "Reset Theme",
 					Callback = function()
