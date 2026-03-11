@@ -4299,6 +4299,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			end
 			function ElementFunction:AddSmartTheme()
 				local gersec = self
+				local svtg
 			
 				
 				local tmcp = gersec:AddColorpicker({
@@ -4317,8 +4318,8 @@ function OrionLib:MakeWindow(WindowConfig)
 						end
 					end
 				})
-
-				local savetg = gersec:AddToggle({
+				
+				svtg = gersec:AddToggle({ 
 					Name     = "Save Theme & Name",
 					Default  = false,
 					Flag     = "SmartThemeSave",
