@@ -89,7 +89,10 @@ UModule.env.fpsval = 60
 
 if not UModule.env.fpstrack then
     UModule.env.fpstrack = vgs.RunS.RenderStepped:Connect(function(dt)
-        UModule.env.fpsval = math.floor((1 - 0.1) * UModule.env.fpsval + 0.1 * (1 / dt))
+        if dt > 0 then
+            local raw = math.floor(1 / dt)
+            UModule.env.fpsval = math.min(raw, 9999)
+        end
     end)
 end
 

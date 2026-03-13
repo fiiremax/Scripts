@@ -31,7 +31,7 @@ local rate = 1 / 200
 local acc  = 0
 
 local OrionLib = {
-	OrionColor    = Color3.fromRGB(14, 3, 28),
+	OrionColor    = Color3.fromRGB(17, 3, 32),
 	SelectedTheme = "Default",
 	UMouseMode    = "FreeMouse",
 	ThemeObjects  = {},
@@ -182,8 +182,6 @@ function OrionLib:DestroyLib()
 	table.clear(OrionLib.Connections)
 	Orion:Destroy()
 end
-
-
 
 function AddConnection(Signal, Function)
 	if not OrionLib:IsRunning() then
@@ -1793,6 +1791,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		MainWindow.Visible = false; UIHidden = true
 		if WindowConfig.FreeMouse then UnlockMouse(false) end
 		WindowConfig.CloseCallback()
+		OrionLib:MakeNotification({Name="Interface Hidden", Content="Tap "..WindowConfig.Openkey.." to reopen the interface", Time=3})
 	end)
 
 	AddConnection(vgs.UIS.InputBegan, function(Input, Focus)
@@ -2251,7 +2250,11 @@ function OrionLib:MakeWindow(WindowConfig)
 					Name = "Content",
 					TextColor3 = ToChangeColor or Color3.fromRGB(255, 255, 255)
 				})
-				
+			
+				if not ToChangeColor then
+					AddThemeObject(ContentLabel, "Text")
+				end
+			
 				local LabelFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 33),
 					BackgroundTransparency = 0.7,
@@ -2262,7 +2265,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 			
 				Relem(_tabName, Text, LabelFrame)
-				
+			
 				local labelfunc = {}
 			
 				function labelfunc:Set(ToChange, ToChangeColor, Position)
@@ -2271,9 +2274,9 @@ function OrionLib:MakeWindow(WindowConfig)
 					if ToChangeColor then
 						LabelFrame.Content.TextColor3 = ToChangeColor
 					else
-						LabelFrame.Content.TextColor3 = Color3.fromRGB(255, 255, 255)
+						AddThemeObject(LabelFrame.Content, "Text")
 					end
-					
+			
 					local tposs
 					if Position == "Left" then
 						tposs = UDim2.new(0, 12, 0, 0)
@@ -2285,11 +2288,9 @@ function OrionLib:MakeWindow(WindowConfig)
 						tposs = UDim2.new(0.5, -LabelFrame.Content.TextBounds.X / 2, 0, 0)
 					end
 			
-					local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-					local tweenGoal = {Position = tposs}
-					local tween = vgs.TS:Create(LabelFrame.Content, tweenInfo, tweenGoal)
-			
-					tween:Play()
+					vgs.TS:Create(LabelFrame.Content, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Position = tposs
+					}):Play()
 				end
 			
 				labelfunc:Set(Text, ToChangeColor, Position)
@@ -2297,26 +2298,40 @@ function OrionLib:MakeWindow(WindowConfig)
 			end
 			
 			local function parsec(text)
-				return (text:gsub('<#(%x+)"([^"]+)">', '<font color="#%1">%2</font>'))
+				return (text:gsub('<#(%x+)"([^"]+)",%s*B>', '<font color="#%1"><b>%2</b></font>'):gsub('<#(%x+)"([^"]+)">', '<font color="#%1">%2</font>'))
 			end
 			
-			function ElementFunction:AddParagraph(id, Text, Content, Align)
+			function ElementFunction:AddParagraph(id, Text, Content, Align, ImgSize)
 				local plrp = tonumber(id) ~= nil
-				if not plrp then Align = Content Content = Text Text = id id = "" end
+				if not plrp then
+					if typeof(Text) == "UDim2" then ImgSize = Text Text = id id = ""
+					elseif typeof(Content) == "UDim2" then ImgSize = Content Align = Text Content = id id = "" Text = id
+					elseif typeof(Align) == "UDim2" then ImgSize = Align Align = Content Content = Text Text = id id = ""
+					else Align = Content Content = Text Text = id id = "" end
+				else
+					if typeof(Align) == "UDim2" then ImgSize = Align Align = nil end
+				end
 				Align = Align or "Left"
 			
 				local isCenter = Align == "Center"
 				local isRight  = Align == "Right"
+				
+				local extraW = ImgSize ~= nil and ImgSize.X.Offset or 0
+				local extraH = ImgSize ~= nil and ImgSize.Y.Offset or 0
+				local imgW = 60 + extraW
+				local imgH = 60 + extraH
+				local innerW = 50 + (ImgSize and ImgSize.X.Offset or 0)
+				local innerH = 50 + (ImgSize and ImgSize.Y.Offset or 0)
 			
-				local initH = plrp and (isCenter and 90 or 60) or 30
+				local initH = plrp and (isCenter and imgH + 30 or imgH) or 30
 			
-				local titleXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
-				local titleWOff = plrp and (isCenter and -24 or -72) or -12
-				local titleYOff = plrp and (isCenter and 30 or 10) or 10
+				local titleXOff = plrp and (isCenter and 12 or (isRight and 12 or imgW + 2)) or 12
+				local titleWOff = plrp and (isCenter and -24 or -(imgW + 12)) or -12
+				local titleYOff = plrp and (isCenter and imgH + 6 or 10) or 10
 			
-				local contentXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
-				local contentWOff = plrp and (isCenter and -24 or -72) or -24
-				local contentYOff = plrp and (isCenter and 84 or 32) or 26
+				local contentXOff = plrp and (isCenter and 12 or (isRight and 12 or imgW + 2)) or 12
+				local contentWOff = plrp and (isCenter and -24 or -(imgW + 12)) or -24
+				local contentYOff = plrp and (isCenter and imgH + 6 + 22 or 32) or 26
 			
 				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, initH),
@@ -2346,23 +2361,23 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				local OptBtn
 				if plrp then
-					local imgPos = isCenter and UDim2.new(0.5, -30, 0, 0)
-								or isRight  and UDim2.new(1, -60, 0, 0)
+					local imgPos = isCenter and UDim2.new(0.5, -(imgW/2), 0, 0)
+								or isRight  and UDim2.new(1, -imgW, 0, 0)
 								or UDim2.new(0, 0, 0, 0)
 			
 					OptBtn = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(40, 40, 40)), {
 						Parent = ParagraphFrame,
-						Size   = UDim2.new(0, 60, 0, 60),
+						Size   = UDim2.new(0, imgW, 0, imgH),
 						Position = imgPos,
 						BackgroundTransparency = 1,
 					}), {
 						MakeElement("Corner", 0, 6),
-						SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
-							Size = UDim2.new(0, 50, 0, 50),
+						SetChildren(AddThemeObject(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+							Size = UDim2.new(0, innerW, 0, innerH),
 							Position = UDim2.new(0, 5, 0, 5),
 							ClipsDescendants = true,
-							BackgroundTransparency = 1
-						}), {
+							BackgroundTransparency = 0 
+						}), "Divider"), { 
 							SetChildren(SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. id .. "&width=420&height=420&format=png"), {
 								Size = UDim2.new(1, 0, 1, 0),
 								BackgroundTransparency = 1
@@ -2384,28 +2399,28 @@ function OrionLib:MakeWindow(WindowConfig)
 						if plrp then
 							if isCenter then
 								ParagraphFrame.Title.Size     = UDim2.new(1, -24, 0, titleY)
-								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 76)
+								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, imgH + 6)
 								ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 76 + titleY + 8)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, math.max(90, 76 + titleY + 8 + cntY + 10))
+								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, imgH + 6 + titleY + 8)
+								ParagraphFrame.Size = UDim2.new(1, 0, 0, math.max(imgH + 30, imgH + 6 + titleY + 8 + cntY + 10))
 							elseif isRight then
-								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
+								ParagraphFrame.Title.Size     = UDim2.new(1, -(imgW + 12), 0, titleY)
 								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 10)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
+								ParagraphFrame.Content.Size   = UDim2.new(1, -(imgW + 12), 0, cntY)
 								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
-								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
+								local th = math.max(imgH, 10 + titleY + 8 + cntY + 10)
 								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
 								if OptBtn then
-									OptBtn.Size     = UDim2.new(0, 60, 0, th)
-									OptBtn.Position = UDim2.new(1, -60, 0, 0)
+									OptBtn.Size     = UDim2.new(0, imgW, 0, th)
+									OptBtn.Position = UDim2.new(1, -imgW, 0, 0)
 								end
 							else
-								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 62, 0, 10 + titleY + 8)
-								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
+								ParagraphFrame.Title.Size     = UDim2.new(1, -(imgW + 12), 0, titleY)
+								ParagraphFrame.Content.Size   = UDim2.new(1, -(imgW + 12), 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, imgW + 2, 0, 10 + titleY + 8)
+								local th = math.max(imgH, 10 + titleY + 8 + cntY + 10)
 								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
-								if OptBtn then OptBtn.Size = UDim2.new(0, 60, 0, th) end
+								if OptBtn then OptBtn.Size = UDim2.new(0, imgW, 0, th) end
 							end
 						else
 							ParagraphFrame.Title.Size     = UDim2.new(1, -12, 0, titleY)
@@ -2449,7 +2464,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
 						ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
 						if OptBtn then
-							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
+							OptBtn.Position = isCenter and UDim2.new(0.5, -(imgW/2), 0, 0) or isRight and UDim2.new(1, -imgW, 0, 0) or UDim2.new(0, 0, 0, 0)
 						end
 						updtsz()
 					end
@@ -3029,7 +3044,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					sd.Value.Text = vt
 					pcall(function() SliderConfig.Callback(self.Value) end)
 				end
-
+			
 				function s:SetName(n)
 					self.Name = n  
 					local cl = sf.Content
@@ -3040,6 +3055,14 @@ function OrionLib:MakeWindow(WindowConfig)
 						task.wait(0.1)
 						for i = 1, #n do cl.Text = string.sub(n, 1, i) task.wait(0.035) end
 					end)
+				end
+			
+				function s:SetValueName(n)
+					if n == SliderConfig.ValueName then return end
+					SliderConfig.ValueName = n
+					local vt = fv(self.Value) .. " " .. SliderConfig.ValueName
+					sb.Value.Text = vt
+					sd.Value.Text = vt
 				end
 				
 				function s:SetMax(m)
@@ -3067,6 +3090,41 @@ function OrionLib:MakeWindow(WindowConfig)
 					vgs.TS:Create(sd, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						Size = UDim2.fromScale(sc(self.Value), 1)
 					}):Play()
+				end
+			
+				function s:SetConfig(cfg)
+					cfg = cfg or {}
+			
+					if cfg.Name then
+						self:SetName(cfg.Name)
+						SliderConfig.Name = cfg.Name
+					end
+			
+					if cfg.ValueName then
+						self:SetValueName(cfg.ValueName)
+					end
+			
+					if cfg.Increment then
+						SliderConfig.Increment = cfg.Increment
+					end
+			
+					if cfg.Callback then
+						SliderConfig.Callback = cfg.Callback
+					end
+			
+					if cfg.Min then
+						self:SetMin(cfg.Min)
+					end
+			
+					if cfg.Max then
+						self:SetMax(cfg.Max)
+					end
+			
+					if cfg.Default ~= nil then
+						self:Set(cfg.Default)
+					elseif cfg.Min or cfg.Max then
+						self:Set(math.clamp(self.Value, SliderConfig.Min, SliderConfig.Max))
+					end
 				end
 			
 				s:Set(s.Value)
