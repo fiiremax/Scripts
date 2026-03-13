@@ -89,7 +89,7 @@ UModule.env.fpsval = 60
 
 if not UModule.env.fpstrack then
     UModule.env.fpstrack = vgs.RunS.RenderStepped:Connect(function(dt)
-        UModule.env.fpsval = math.floor(1 / dt)
+        UModule.env.fpsval = math.floor((1 - 0.1) * UModule.env.fpsval + 0.1 * (1 / dt))
     end)
 end
 
@@ -129,24 +129,25 @@ function UModule.p(...)
 end
 
 function UModule.MBP(name)
-    return UModule.env.ov.char:WaitForChild(name)
+    local char = UModule.env.ov.char
+    return char:FindFirstChild(name) or char:WaitForChild(name)
 end
 
 function UModule.inpast(model)
-    return workspace[game.Players.LocalPlayer.Name .. "SpawnedInToys"]:FindFirstChild(model)
+    return workspace[vgs.p.Name .. "SpawnedInToys"]:FindFirstChild(model)
 end
 
 function UModule.GPNames(mode, arg)
     local pnames = {}
     if mode == "func" then
-        for _, p in pairs(vgs.ps:GetPlayers()) do
+        for _, p in ipairs(vgs.ps:GetPlayers()) do
             if p ~= vgs.p and not arg() then
                 table.insert(pnames, p.Name .. " (" .. p.DisplayName .. ")")
             end
         end
         return pnames
     end
-    for _, p in pairs(vgs.ps:GetPlayers()) do
+    for _, p in ipairs(vgs.ps:GetPlayers()) do
         if p ~= vgs.p then
             table.insert(pnames, p.Name .. " (" .. p.DisplayName .. ")")
         end
@@ -191,7 +192,7 @@ function UModule.SVel(...)
         end
     end
     
-    local hrp = UModule.env.ov.char:WaitForChild("HumanoidRootPart")
+    local hrp = UModule.MBP("HumanoidRootPart")
     hrp.AssemblyLinearVelocity = Vector3.zero
     hrp.AssemblyAngularVelocity = Vector3.zero
     hrp.RotVelocity = Vector3.zero
@@ -247,8 +248,8 @@ end
 function UModule.tp(target)
     local hrp = UModule.MBP("HumanoidRootPart")
     local pos = typeof(target) == "Vector3" and target or 
-              (target:IsA("Model") and (target:GetPrimaryPartCFrame().Position or 
-              target:FindFirstChild("HumanoidRootPart").Position) or target.Position)
+            (target:IsA("Model") and (target:GetPrimaryPartCFrame().Position or 
+            target:FindFirstChild("HumanoidRootPart").Position) or target.Position)
     
     if not pos then return end
     
@@ -284,10 +285,10 @@ function UModule.SICF(...)
         if not item then return end
         
         local hrp = UModule.env.ov.char:WaitForChild("HumanoidRootPart")
-        local rotation = Vector3.new(0, 0, 0)
+        local rotation = Vector3.zero
 
         if mode == "Default" then
-            cf = hrp.CFrame * CFrame.new(0, 0, 0)
+            cf = hrp.CFrame
         elseif mode == "Head" then
             cf = CFrame.new(hrp.Position + Vector3.new(0, 20, 20))
         elseif mode == "Front" then
@@ -300,8 +301,10 @@ function UModule.SICF(...)
 end
 
 function UModule.IsAround(part, radius)
+    local hrp = UModule.env.ov.char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
     local pos = part:IsA("Model") and part.PrimaryPart.Position or part.Position
-    return (pos - UModule.MBP("HumanoidRootPart").Position).Magnitude <= radius
+    return (pos - hrp.Position).Magnitude <= radius
 end
 
 function UModule.FMC(...)
@@ -417,59 +420,39 @@ function UModule.var(a1, a2, a3)
         end
         return true
     end
-    
+
     if type(a1) == "string" and a2 == nil and a3 == nil then
-        local function search(tbl, key, visited)
-            visited = visited or {}
-            if visited[tbl] then return nil end
-            visited[tbl] = true
-            
-            if type(tbl) == "table" then
-                if tbl[key] ~= nil then return tbl[key] end
-                
-                for k, v in pairs(tbl) do
-                    if type(v) == "table" and k ~= "Conns" and k ~= "Connections" and k ~= "ov" then
-                        local result = search(v, key, visited)
-                        if result ~= nil then return result end
-                    end
-                end
+        if UModule.env[a1] ~= nil then return UModule.env[a1] end
+        for _, tbl in pairs(UModule.env) do
+            if type(tbl) == "table" and tbl[a1] ~= nil then
+                return tbl[a1]
             end
-            return nil
         end
-        
-        return search(UModule.env, a1)
+        return nil
     end
-    
+
     if type(a1) == "string" and a2 ~= nil then
         if a2 == "ref" then
-            if not UModule.env[a1] then 
-                UModule.env[a1] = {}
-            end
-            if type(UModule.env[a1]) == "table" then
-                return UModule.env[a1]
-            end
+            if not UModule.env[a1] then UModule.env[a1] = {} end
+            if type(UModule.env[a1]) == "table" then return UModule.env[a1] end
             return nil
         end
-        
+
         if a2 == "get" then
             if UModule.env[a1] and type(UModule.env[a1]) == "table" and a3 then
                 return UModule.env[a1][a3]
             end
             return UModule.env[a1]
         end
-        
+
         if a2 == "merge" and type(a3) == "table" then
-            if not UModule.env[a1] then 
-                UModule.env[a1] = {} 
-            end
+            if not UModule.env[a1] then UModule.env[a1] = {} end
             if type(UModule.env[a1]) == "table" then
-                for k, v in pairs(a3) do
-                    UModule.env[a1][k] = v
-                end
+                for k, v in pairs(a3) do UModule.env[a1][k] = v end
             end
             return true
         end
-        
+
         if a3 ~= nil then
             if not UModule.env[a1] then UModule.env[a1] = {} end
             if type(UModule.env[a1]) ~= "table" then UModule.env[a1] = {} end
@@ -480,7 +463,7 @@ function UModule.var(a1, a2, a3)
             return true
         end
     end
-    
+
     return nil
 end
 
@@ -609,61 +592,55 @@ end
 function UModule.tmr(tag, a2, a3)
     local dur = type(a2) == "number" and a2 or (type(a3) == "number" and a3 or nil)
     local cmd = type(a2) == "string" and a2 or (type(a3) == "string" and a3 or nil)
-    
+
     if not a2 and not a3 then
         return UModule.env.Timers[tag] and UModule.env.Timers[tag]._run or false
     end
-    
+
     if cmd then
         if not UModule.env.Timers[tag] then return end
-        
         if cmd == "pause" then
             UModule.env.Timers[tag]._pause = true
             UModule.env.Timers[tag]._pt = tick()
-            
         elseif cmd == "resume" then
             if UModule.env.Timers[tag]._pause then
                 local pd = tick() - UModule.env.Timers[tag]._pt
                 UModule.env.Timers[tag]._et = UModule.env.Timers[tag]._et + pd
                 UModule.env.Timers[tag]._pause = false
             end
-            
         elseif cmd == "restart" then
             if dur then
                 UModule.env.Timers[tag]._et = tick() + dur
                 UModule.env.Timers[tag]._pause = false
             end
-            
         elseif cmd == "stop" then
             UModule.env.Timers[tag]._run = false
             UModule.env.Timers[tag] = nil
         end
         return
     end
-    
+
     if not dur then return end
-    
+
     if UModule.env.Timers[tag] then
         UModule.env.Timers[tag]._run = false
     end
-    
+
     UModule.env.Timers[tag] = {
-        _run = true,
+        _run   = true,
         _pause = false,
-        _et = tick() + dur
+        _et    = tick() + dur
     }
-    
+
     task.spawn(function()
         local t = UModule.env.Timers[tag]
-        
-        while t._run do
-            task.wait()
-            
-            if not t._pause and tick() >= t._et then
-                t._run = false
-                UModule.env.Timers[tag] = nil
-                break
-            end
+        local remaining = t._et - tick()
+        if remaining > 0 then
+            task.wait(remaining)
+        end
+        if t._run and not t._pause then
+            t._run = false
+            UModule.env.Timers[tag] = nil
         end
     end)
 end
@@ -719,16 +696,16 @@ function UModule.cm(...)
                 i = i + 1
             end
             if not ninst then
-                local success, char = pcall(function() return game:GetService("Players").LocalPlayer.Character end)
+                local success, char = pcall(function() return vgs.p.Character end)
                 if success and char then ninst = char:FindFirstChild(oldInst.Name) end
             end
             if not ninst then return end
-            local reconArgs = {ninst, senv}
-            if sprop then table.insert(reconArgs, sprop) end
-            table.insert(reconArgs, callback)
-            if savedTtle then table.insert(reconArgs, savedTtle) end
-            table.insert(reconArgs, name)
-            UModule.cm(unpack(reconArgs))
+            local reconargs = {ninst, senv}
+            if sprop then table.insert(reconargs, sprop) end
+            table.insert(reconargs, callback)
+            if savedTtle then table.insert(reconargs, savedTtle) end
+            table.insert(reconargs, name)
+            UModule.cm(unpack(reconargs))
             return
         end
     end
