@@ -1,6 +1,6 @@
+--!optimize 2
 --# Author: firemax(lxz_firemax)
 --# Based on Orion Library
-
 --[[
 --! IK IK, this Orion has ALOT of "local function", but thats "the correct way". PS: MY VS CODE TURNS YELLOW WHEN I DONT PUT LOCAL SO YYA
 ah and prob ur asking abt the comments (#, ! or sep), im using the Better Comments extention, custom colors so u can imagine it alr?
@@ -31,7 +31,7 @@ local rate = 1 / 200
 local acc  = 0
 
 local OrionLib = {
-	OrionColor    = Color3.fromRGB(17, 3, 32),
+	OrionColor    = Color3.fromRGB(37, 52, 63),
 	SelectedTheme = "Default",
 	UMouseMode    = "FreeMouse",
 	ThemeObjects  = {},
@@ -78,6 +78,8 @@ function OrionLib:GenTheme(mainColor)
 	return t
 end
 
+local propCache = {}
+
 function OrionLib:SetTheme()
 	local thmdata = self.Themes[self.SelectedTheme]
 	if not thmdata then return end
@@ -90,13 +92,13 @@ function OrionLib:SetTheme()
 			local obj = objects[i]
 			if not (obj and obj.Parent) then continue end
 
-			local prop = cache[obj]
+			local prop = propCache[obj]
 			if not prop then
 				prop = typeName == "Accent2"
 					and (obj:IsA("UIStroke") and "Color" or "BackgroundColor3")
 					or ReturnProperty(obj)
 				if not prop then continue end
-				cache[obj] = prop
+				propCache[obj] = prop
 			end
 
 			obj[prop] = color
@@ -120,15 +122,11 @@ function OrionLib:SetTheme()
 			if ico then ico.ImageTransparency = toggle.Value and 0 or 1 end
 		end
 	end
-
+	
 	if self.Dropdowns then
 		for _, dropdown in ipairs(self.Dropdowns) do
 			if not (dropdown and dropdown.Buttons) then continue end
-			for value, btn in pairs(dropdown.Buttons) do
-				if btn and btn.Parent and btn:FindFirstChild("Checkbox") then
-					putaccent(btn.Checkbox, table.find(dropdown.Value, value) ~= nil)
-				end
-			end
+			dropdown:UpdSel(1)  
 		end
 	end
 
@@ -172,43 +170,45 @@ function OrionLib:IsRunning()
 		return Orion.Parent == game:GetService("CoreGui")
 	end
 end
+local connSet = {}
 
 function OrionLib:DestroyLib()
-	for _, Connection in OrionLib.Connections do
-		if Connection.Connected then
-			Connection:Disconnect()
-		end
-	end
-	table.clear(OrionLib.Connections)
-	Orion:Destroy()
+    for conn in pairs(connSet) do
+        if conn.Connected then
+            conn:Disconnect()
+        end
+    end
+    table.clear(connSet)
+    table.clear(OrionLib.Connections)  
+    Orion:Destroy()
 end
 
 function AddConnection(Signal, Function)
-	if not OrionLib:IsRunning() then
-		return
-	end
-	
-	local SignalConnect = Signal:Connect(Function)
-	table.insert(OrionLib.Connections, SignalConnect)
-	
-	return SignalConnect, function()
-		local index = table.find(OrionLib.Connections, SignalConnect)
-		if index then
-			table.remove(OrionLib.Connections, index)
-		end
-		if SignalConnect.Connected then
-			SignalConnect:Disconnect()
-		end
-	end
+    if not OrionLib:IsRunning() then return end
+
+    local SignalConnect = Signal:Connect(Function)
+    connSet[SignalConnect] = true
+
+    local function disconnect()
+        if connSet[SignalConnect] then
+            connSet[SignalConnect] = nil
+        end
+        if SignalConnect.Connected then
+            SignalConnect:Disconnect()
+        end
+    end
+
+    return SignalConnect, disconnect
 end
 
 local hb
 
 hb = AddConnection(vgs.RS.Heartbeat, function()
-	if not OrionLib:IsRunning() then
-		hb:Disconnect()
-		OrionLib:DestroyLib()
-	end
+    if not OrionLib:IsRunning() then
+        if hb and hb.Connected then hb:Disconnect() end
+        connSet[hb] = nil
+        OrionLib:DestroyLib()
+    end
 end)
 
 function MakeDraggable(DragPoint, Main)
@@ -417,12 +417,12 @@ end
 --# UI Helpers
 
 local WhitelistedMouse = {
-	Enum.UserInputType.MouseButton1,
-	Enum.UserInputType.MouseButton2,
 	Enum.UserInputType.MouseButton3
 }
 
 local BlacklistedKeys = {
+	Enum.UserInputType.MouseButton1,
+	Enum.UserInputType.MouseButton2,
 	Enum.KeyCode.Unknown,
 	Enum.KeyCode.W,
 	Enum.KeyCode.A,
@@ -628,15 +628,21 @@ local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 
 function OrionLib:MakeNotification(NotificationConfig)
 	task.spawn(function()
-		NotificationConfig.Name    = NotificationConfig.Name    or "Notification"
-		NotificationConfig.Content = NotificationConfig.Content or "Test"
-		NotificationConfig.Image   = NotificationConfig.Image   or "rbxassetid://4384403532"
+		NotificationConfig.Name     = NotificationConfig.Name     or "Notification"
+		NotificationConfig.Content  = NotificationConfig.Content  or "Test"
+		NotificationConfig.Image    = NotificationConfig.Image    or "rbxassetid://4384403532"
+		NotificationConfig.Time     = NotificationConfig.Time     or 15
+		NotificationConfig.Ask      = NotificationConfig.Ask      or false
+		NotificationConfig.Callback = NotificationConfig.Callback or function() end
+
 		game:GetService("ContentProvider"):PreloadAsync({NotificationConfig.Image})
-		NotificationConfig.Time = NotificationConfig.Time or 15
 
 		local key = NotificationConfig.Name .. NotificationConfig.Content
 		if OrionLib.Notifys[key] then return end
 		OrionLib.Notifys[key] = true
+
+		local answered = false
+		local NotificationFrame
 
 		local NotificationParent = SetProps(MakeElement("TFrame"), {
 			Size          = UDim2.new(1, 0, 0, 0),
@@ -644,18 +650,90 @@ function OrionLib:MakeNotification(NotificationConfig)
 			Parent        = NotificationHolder
 		})
 
-		local NotificationFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(25, 25, 25), 0, 10), {
-			Parent            = NotificationParent,
-			Size              = UDim2.new(1, 0, 0, 0),
-			Position          = UDim2.new(1, -55, 0, 0),
+		local ContentRow = SetProps(MakeElement("TFrame"), {
+			Size          = UDim2.new(1, 0, 0, 0),
+			Position      = UDim2.new(0, 0, 0, 25),
+			AutomaticSize = Enum.AutomaticSize.Y
+		})
+
+		local ContentLabel = AddThemeObject(SetProps(MakeElement("Label", NotificationConfig.Content, 14), {
+			Size          = NotificationConfig.Ask and UDim2.new(1, -70, 0, 0) or UDim2.new(1, 0, 0, 0),
+			Font          = Enum.Font.GothamSemibold,
+			Name          = "Content",
+			AutomaticSize = Enum.AutomaticSize.Y,
+			TextWrapped   = true,
+			Parent        = ContentRow
+		}), "TextDark")
+
+		if NotificationConfig.Ask then
+			local ButtonHolder = SetProps(MakeElement("TFrame"), {
+				Size     = UDim2.new(0, 60, 1, 4),
+				Position = UDim2.new(1, -60, 0, 4),
+				Name     = "ButtonHolder",
+				Parent   = ContentRow
+			})
+
+			local ButtonLayout = Instance.new("UIListLayout")
+			ButtonLayout.FillDirection       = Enum.FillDirection.Horizontal
+			ButtonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+			ButtonLayout.VerticalAlignment   = Enum.VerticalAlignment.Center
+			ButtonLayout.SortOrder           = Enum.SortOrder.LayoutOrder
+			ButtonLayout.Padding             = UDim.new(0, 4)
+			ButtonLayout.Parent              = ButtonHolder
+
+			local function MakeButton(label, result)
+				local Btn = Instance.new("TextButton")
+				Btn.AutomaticSize          = Enum.AutomaticSize.X
+				Btn.Size                   = UDim2.new(0, 0, 0, 18)
+				Btn.BorderSizePixel        = 0
+				Btn.BackgroundColor3       = Color3.fromRGB(255, 255, 255)
+				Btn.BackgroundTransparency = 0.93
+				Btn.Text                   = ""
+				Btn.Parent                 = ButtonHolder
+
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 4)
+				Corner.Parent       = Btn
+
+				local Padding = Instance.new("UIPadding")
+				Padding.PaddingLeft  = UDim.new(0, 7)
+				Padding.PaddingRight = UDim.new(0, 7)
+				Padding.Parent       = Btn
+
+				AddThemeObject(SetProps(MakeElement("Label", label, 10), {
+					Size           = UDim2.new(1, 0, 1, 0),
+					Font           = Enum.Font.GothamBold,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					Parent         = Btn
+				}), "Text")
+
+				Btn.MouseButton1Click:Connect(function()
+					if answered then return end
+					answered = true
+					pcall(function() NotificationConfig.Callback(result) end)
+					NotificationFrame:TweenPosition(UDim2.new(1, 40, 0, 0), "In", "Quint", 0.8, true)
+					task.wait(1.35)
+					NotificationFrame:Destroy()
+					OrionLib.Notifys[key] = nil
+				end)
+			end
+
+			MakeButton("Yes", true)
+			MakeButton("No", false)
+		end
+
+		NotificationFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(25, 25, 25), 0, 10), {
+			Parent                 = NotificationParent,
+			Size                   = UDim2.new(1, 0, 0, 0),
+			Position               = UDim2.new(1, -55, 0, 0),
 			BackgroundTransparency = 0,
-			AutomaticSize     = Enum.AutomaticSize.Y
+			AutomaticSize          = Enum.AutomaticSize.Y
 		}), {
 			MakeElement("Padding", 16, 12, 12, 12),
 			AddThemeObject(SetProps(MakeElement("Image", NotificationConfig.Image), {
-				Size       = UDim2.new(0, 20, 0, 20),
+				Size        = UDim2.new(0, 20, 0, 20),
 				ImageColor3 = Color3.fromRGB(240, 240, 240),
-				Name       = "Icon"
+				Name        = "Icon"
 			}), "Text"),
 			AddThemeObject(SetProps(MakeElement("Label", NotificationConfig.Name, 15), {
 				Size     = UDim2.new(1, -30, 0, 20),
@@ -663,22 +741,25 @@ function OrionLib:MakeNotification(NotificationConfig)
 				Font     = Enum.Font.GothamBold,
 				Name     = "Title"
 			}), "Text"),
-			AddThemeObject(SetProps(MakeElement("Label", NotificationConfig.Content, 14), {
-				Size          = UDim2.new(1, 0, 0, 0),
-				Position      = UDim2.new(0, 0, 0, 25),
-				Font          = Enum.Font.GothamSemibold,
-				Name          = "Content",
-				AutomaticSize = Enum.AutomaticSize.Y,
-				TextColor3    = Color3.fromRGB(200, 200, 200),
-				TextWrapped   = true
-			}), "TextDark")
+			ContentRow
 		}), "Second")
 
 		vgs.TS:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {
 			Position = UDim2.new(0, 0, 0, 0)
 		}):Play()
 
-		task.wait(NotificationConfig.Time - 0.88)
+		if NotificationConfig.Ask then
+			local start = os.clock()
+			
+			while not answered and os.clock() - start < NotificationConfig.Time do
+				task.wait()
+			end
+			
+			if answered then return end
+		else
+			task.wait(NotificationConfig.Time - 0.88)
+		end
+
 		vgs.TS:Create(NotificationFrame:WaitForChild("Icon"), TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
 			ImageTransparency = 1
 		}):Play()
@@ -689,12 +770,12 @@ function OrionLib:MakeNotification(NotificationConfig)
 		vgs.TS:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {
 			TextTransparency = 0.4
 		}):Play()
-		vgs.TS:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {
+		vgs.TS:Create(ContentLabel, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {
 			TextTransparency = 0.5
 		}):Play()
 		task.wait(0.05)
 
-		NotificationFrame:TweenPosition(UDim2.new(1, 40, 0, 0), 'In', 'Quint', 0.8, true)
+		NotificationFrame:TweenPosition(UDim2.new(1, 40, 0, 0), "In", "Quint", 0.8, true)
 		task.wait(1.35)
 		NotificationFrame:Destroy()
 		OrionLib.Notifys[key] = nil
@@ -723,11 +804,23 @@ function OrionLib:Init()
 	end
 end
 
+task.spawn(function()
+    while task.wait(30) do
+        if not OrionLib:IsRunning() then break end
+        for typeName, objects in pairs(OrionLib.ThemeObjects) do
+            for i = #objects, 1, -1 do
+                if not (objects[i] and objects[i].Parent) then
+                    table.remove(objects, i)
+                end
+            end
+        end
+    end
+end)
 --sep                                                                  
 --# Orion
 
 function OrionLib:MakeWindow(WindowConfig)
-	local FirstTab = true --
+	local FirstTab = true 
 	local minimized = false
 	local UIHidden  = false
 	local TabOrderCounter = 0
@@ -769,7 +862,9 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 0), {
 		Size     = UDim2.new(1, 0, 1, -58),
-		Position = UDim2.new(0, 0, 0, 10)
+		Position = UDim2.new(0, 0, 0, 10),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(0, 0, 0, 0)
 	}), {
 		Create("UIListLayout", {
 			SortOrder = Enum.SortOrder.LayoutOrder,
@@ -786,10 +881,6 @@ function OrionLib:MakeWindow(WindowConfig)
 	}), "Main")
 
 	TabHolder.ScrollBarImageTransparency = 1
-
-	AddConnection(TabHolder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-		TabHolder.CanvasSize = UDim2.new(0, 0, 0, TabHolder.UIListLayout.AbsoluteContentSize.Y + 8)
-	end)
 
 	local CloseBtn = SetChildren(SetProps(MakeElement("Button"), {
 		Size     = UDim2.new(0.5, 0, 1, 0),
@@ -1124,16 +1215,15 @@ function OrionLib:MakeWindow(WindowConfig)
 			for tn, t in pairs(SearchSystem.elmnts) do
 				for k, d in pairs(t) do
 					if d.frame and d.frame.Parent then
-						d.frame.Visible = (tn == tab) and d.visible
+						local isSection = d.frame:FindFirstChild("Holder") ~= nil
+						
+						if isSection then
+							d.frame.Visible = d.visible
+						else
+							d.frame.Visible = (tn == tab) and d.visible
+						end
+						
 						Hlight(d.frame, false)
-					end
-				end
-			end
-
-			if cont then
-				for _, c in pairs(cont:GetChildren()) do
-					if c:IsA("Frame") and c:FindFirstChild("Holder") then
-						c.Visible = true
 					end
 				end
 			end
@@ -1183,6 +1273,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	
 		for tabName, elements in pairs(SearchSystem.elmnts) do
 			for elementName, data in pairs(elements) do
+			    if not data.visible then continue end  
 				local lname   = string.lower(elementName)
 				local matches = false
 				if matchLevel == "exact" then
@@ -1285,6 +1376,9 @@ function OrionLib:MakeWindow(WindowConfig)
 		ContentPanel
 	}), "Main")
 
+	local UiScale = Instance.new("UIScale")
+	UiScale.Scale = 1
+	UiScale.Parent = MainWindow
 
 	local SearchOpen = false
 
@@ -1309,14 +1403,14 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local Acolor = OrionLib.Themes[OrionLib.SelectedTheme].Accent
 
-	srchLn = Create("Frame", {
+	srchLn = AddThemeObject(Create("Frame", {
 		Size             = UDim2.new(0, 0, 0, 1),
 		Position         = UDim2.new(0, 12, 1, -1),
 		BackgroundColor3 = Acolor,
 		BorderSizePixel  = 0,
 		ZIndex           = 3,
 		Parent           = MainWindow.TopBar
-	})
+	}), "Accent")
 
 	local srchdly       = nil
 	local srchfcs       = nil
@@ -1913,6 +2007,13 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local Functions = {}
 
+	function Functions:SetUIScale(Percent)
+		local scale = math.clamp(Percent, 50, 150) / 100
+		vgs.TS:Create(UiScale, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Scale = scale
+		}):Play()
+	end
+
 	function Functions:ChangeIcon(IconId)
 		local ficon = string.match(IconId, "rbxassetid://") and IconId or "rbxassetid://"..IconId
 		local WindowIcon = MainWindow.TopBar:FindFirstChild("WindowIcon")
@@ -2091,7 +2192,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			Parent  = ContentPanel,
 			Visible = false,
 			Name    = "ItemContainer",
-			Active  = false 
+			Active  = true 
 		}), {
 		MakeElement("List", 0, 6),
 			MakeElement("Padding", 15, 10, 10, 15)
@@ -2099,10 +2200,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 		Container.Name = TabConfig.Name
 		Container.ScrollBarImageTransparency = 1
-
-		AddConnection(Container.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-			Container.CanvasSize = UDim2.new(0,0,0, Container.UIListLayout.AbsoluteContentSize.Y + 30)
-		end)
+		Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		Container.CanvasSize = UDim2.new(0, 0, 0, 0)
 
 		RTab(TabConfig.Name, Container)
 		Rbutton(TabConfig.Name, TabFrame)
@@ -2301,43 +2400,44 @@ function OrionLib:MakeWindow(WindowConfig)
 				return (text:gsub('<#(%x+)"([^"]+)",%s*B>', '<font color="#%1"><b>%2</b></font>'):gsub('<#(%x+)"([^"]+)">', '<font color="#%1">%2</font>'))
 			end
 			
-			function ElementFunction:AddParagraph(id, Text, Content, Align)
+			function ElementFunction:AddParagraph(id, Text, Content, Align, Size, ImgSize)
 				local plrp = tonumber(id) ~= nil
-				if not plrp then Align = Content Content = Text Text = id id = "" end
-				Align = Align or "Left"
+				if not plrp then ImgSize = Size Size = Align Align = Content Content = Text Text = id id = "" end
+				Align   = Align   or "Left"
+				Size    = Size    or 60
+				ImgSize = ImgSize or Size - 10
 			
-				local isCenter = Align == "Center"
-				local isRight  = Align == "Right"
+				local isCenter  = Align == "Center"
+				local isRight   = Align == "Right"
+				local gap       = 6
+				local innerSize = Size - 10
 			
-				local initH = plrp and (isCenter and 90 or 60) or 30
-			
-				local titleXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
-				local titleWOff = plrp and (isCenter and -24 or -72) or -12
-				local titleYOff = plrp and (isCenter and 30 or 10) or 10
-			
-				local contentXOff = plrp and (isCenter and 12 or (isRight and 12 or 62)) or 12
-				local contentWOff = plrp and (isCenter and -24 or -72) or -24
-				local contentYOff = plrp and (isCenter and 84 or 32) or 26
+				local initH
+				if plrp then
+					initH = isCenter and (Size + gap + 30) or math.max(Size, 60)
+				else
+					initH = 30
+				end
 			
 				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-					Size = UDim2.new(1, 0, 0, initH),
+					Size                   = UDim2.new(1, 0, 0, initH),
 					BackgroundTransparency = 0.7,
-					Parent = ItemParent
+					Parent                 = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", parsec(Text or ""), 15), {
-						Size     = UDim2.new(1, titleWOff, 0, 14),
-						Position = UDim2.new(0, titleXOff, 0, titleYOff),
-						Font     = Enum.Font.GothamBold,
-						Name     = "Title",
+						Size           = UDim2.new(1, plrp and (isCenter and -24 or -(Size + gap + 12)) or -12, 0, 14),
+						Position       = UDim2.new(0, plrp and (isCenter and 12 or (isRight and 12 or Size + gap)) or 12, 0, plrp and (isCenter and (Size + gap) or 10) or 10),
+						Font           = Enum.Font.GothamBold,
+						Name           = "Title",
 						TextWrapped    = true,
 						RichText       = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
 					}), "Text"),
 					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
-						Size     = UDim2.new(1, contentWOff, 0, 0),
-						Position = UDim2.new(0, contentXOff, 0, contentYOff),
-						Font     = Enum.Font.GothamSemibold,
-						Name     = "Content",
+						Size           = UDim2.new(1, plrp and (isCenter and -24 or -(Size + gap + 24)) or -24, 0, 0),
+						Position       = UDim2.new(0, plrp and (isCenter and 12 or (isRight and 12 or Size + gap)) or 12, 0, plrp and (isCenter and (Size + gap + 22) or 32) or 26),
+						Font           = Enum.Font.GothamSemibold,
+						Name           = "Content",
 						TextWrapped    = true,
 						RichText       = true,
 						TextXAlignment = Enum.TextXAlignment[Align]
@@ -2347,72 +2447,76 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				local OptBtn
 				if plrp then
-					local imgPos = isCenter and UDim2.new(0.5, -30, 0, 0)
-								or isRight  and UDim2.new(1, -60, 0, 0)
-								or UDim2.new(0, 0, 0, 0)
+					local imgPos  = isCenter and UDim2.new(0.5, -math.floor(Size / 2), 0, 0)
+								 or isRight  and UDim2.new(1, -Size, 0, 0)
+								 or UDim2.new(0, 0, 0, 0)
+					local optSize = isCenter and UDim2.new(0, Size, 0, Size) or UDim2.new(0, Size, 1, 0)
 			
 					OptBtn = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(40, 40, 40)), {
-						Parent = ParagraphFrame,
-						Size   = UDim2.new(0, 60, 0, 60),
-						Position = imgPos,
+						Parent                 = ParagraphFrame,
+						Size                   = optSize,
+						Position               = imgPos,
 						BackgroundTransparency = 1,
+						ClipsDescendants       = true,
 					}), {
 						MakeElement("Corner", 0, 6),
-						SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
-							Size = UDim2.new(0, 50, 0, 50),
-							Position = UDim2.new(0, 5, 0, 5),
+						AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+							Size             = UDim2.new(0, innerSize, 0, innerSize),
+							Position         = UDim2.new(0.5, -math.floor(innerSize / 2), 0.5, -math.floor(innerSize / 2)),
 							ClipsDescendants = true,
-							BackgroundTransparency = 1
 						}), {
 							SetChildren(SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=" .. id .. "&width=420&height=420&format=png"), {
-								Size = UDim2.new(1, 0, 1, 0),
+								Size                   = UDim2.new(0, ImgSize, 0, ImgSize),
+								AnchorPoint            = Vector2.new(0.5, 0.5),
+								Position               = UDim2.new(0.5, 0, 0.5, 0),
 								BackgroundTransparency = 1
 							}), {
 								MakeElement("Corner", 0, 10)
 							}),
 							MakeElement("Corner", 1)
-						})
+						}), "Divider")
 					})
 				end
 			
 				Relem(_tabName, Text, ParagraphFrame)
 			
-				function updtsz()
+				local function updtsz()
 					if ParagraphFrame and ParagraphFrame.Parent then
 						local titleY = ParagraphFrame.Title.TextBounds.Y
-						local cntY = Content ~= nil and ParagraphFrame.Content.TextBounds.Y or -8
+						local cntY   = Content ~= nil and ParagraphFrame.Content.TextBounds.Y or -8
 			
 						if plrp then
 							if isCenter then
-								ParagraphFrame.Title.Size     = UDim2.new(1, -24, 0, titleY)
-								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 76)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 76 + titleY + 8)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, math.max(90, 76 + titleY + 8 + cntY + 10))
+								ParagraphFrame.Title.Size       = UDim2.new(1, -24, 0, titleY)
+								ParagraphFrame.Title.Position   = UDim2.new(0, 12, 0, Size + gap)
+								ParagraphFrame.Content.Size     = UDim2.new(1, -24, 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, Size + gap + titleY + 8)
+								ParagraphFrame.Size             = UDim2.new(1, 0, 0, math.max(Size + gap + 14, Size + gap + titleY + 8 + cntY + 10))
 							elseif isRight then
-								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
-								ParagraphFrame.Title.Position = UDim2.new(0, 12, 0, 10)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
+								ParagraphFrame.Title.Size       = UDim2.new(1, -(Size + gap + 12), 0, titleY)
+								ParagraphFrame.Title.Position   = UDim2.new(0, 12, 0, 10)
+								ParagraphFrame.Content.Size     = UDim2.new(1, -(Size + gap + 24), 0, cntY)
 								ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
-								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
+								local th = math.max(Size, 10 + titleY + 8 + cntY + 10)
+								ParagraphFrame.Size             = UDim2.new(1, 0, 0, th)
 								if OptBtn then
-									OptBtn.Size     = UDim2.new(0, 60, 0, th)
-									OptBtn.Position = UDim2.new(1, -60, 0, 0)
+									OptBtn.Size     = UDim2.new(0, Size, 1, 0)
+									OptBtn.Position = UDim2.new(1, -Size, 0, 0)
 								end
 							else
-								ParagraphFrame.Title.Size     = UDim2.new(1, -72, 0, titleY)
-								ParagraphFrame.Content.Size   = UDim2.new(1, -72, 0, cntY)
-								ParagraphFrame.Content.Position = UDim2.new(0, 62, 0, 10 + titleY + 8)
-								local th = math.max(60, 10 + titleY + 8 + cntY + 10)
-								ParagraphFrame.Size = UDim2.new(1, 0, 0, th)
-								if OptBtn then OptBtn.Size = UDim2.new(0, 60, 0, th) end
+								ParagraphFrame.Title.Size       = UDim2.new(1, -(Size + gap + 12), 0, titleY)
+								ParagraphFrame.Title.Position   = UDim2.new(0, Size + gap, 0, 10)
+								ParagraphFrame.Content.Size     = UDim2.new(1, -(Size + gap + 24), 0, cntY)
+								ParagraphFrame.Content.Position = UDim2.new(0, Size + gap, 0, 10 + titleY + 8)
+								local th = math.max(Size, 10 + titleY + 8 + cntY + 10)
+								ParagraphFrame.Size             = UDim2.new(1, 0, 0, th)
+								if OptBtn then OptBtn.Size = UDim2.new(0, Size, 1, 0) end
 							end
 						else
-							ParagraphFrame.Title.Size     = UDim2.new(1, -12, 0, titleY)
-							ParagraphFrame.Content.Size   = UDim2.new(1, -24, 0, cntY)
+							ParagraphFrame.Title.Size       = UDim2.new(1, -12, 0, titleY)
+							ParagraphFrame.Content.Size     = UDim2.new(1, -24, 0, cntY)
 							ParagraphFrame.Content.Position = UDim2.new(0, 12, 0, 10 + titleY + 8)
-							ParagraphFrame.Size = UDim2.new(1, 0, 0, 10 + titleY + 8 + cntY + 10)
+							ParagraphFrame.Size             = UDim2.new(1, 0, 0, 10 + titleY + 8 + cntY + 10)
 						end
 					end
 				end
@@ -2432,15 +2536,16 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 			
-				ParagraphFrame.Content.Text = Content ~= nil and parsec(Content) or ""
+				ParagraphFrame.Content.Text    = Content ~= nil and parsec(Content) or ""
 				ParagraphFrame.Content.Visible = Content ~= nil
 			
 				local ParagraphFunction = {}
+			
 				function ParagraphFunction:Set(newtext, newcont, newalin)
 					if newtext ~= nil then ParagraphFrame.Title.Text = parsec(newtext or "") end
 					if newcont ~= nil then
 						Content = newcont
-						ParagraphFrame.Content.Text = parsec(newcont or "")
+						ParagraphFrame.Content.Text    = parsec(newcont or "")
 						ParagraphFrame.Content.Visible = true
 					end
 					if newalin then
@@ -2450,11 +2555,13 @@ function OrionLib:MakeWindow(WindowConfig)
 						ParagraphFrame.Content.TextXAlignment = Enum.TextXAlignment[newalin]
 						ParagraphFrame.Title.TextXAlignment   = Enum.TextXAlignment[newalin]
 						if OptBtn then
-							OptBtn.Position = isCenter and UDim2.new(0.5, -30, 0, 8) or isRight and UDim2.new(1, -60, 0, 0) or UDim2.new(0, 0, 0, 0)
+							OptBtn.Position = isCenter and UDim2.new(0.5, -math.floor(Size / 2), 0, 0) or isRight and UDim2.new(1, -Size, 0, 0) or UDim2.new(0, 0, 0, 0)
+							OptBtn.Size     = isCenter and UDim2.new(0, Size, 0, Size) or UDim2.new(0, Size, 1, 0)
 						end
 						updtsz()
 					end
 				end
+			
 				return ParagraphFunction
 			end
 			
@@ -2554,6 +2661,8 @@ function OrionLib:MakeWindow(WindowConfig)
 				ToggleConfig.Color = ToggleConfig.Color or nil
 				ToggleConfig.Flag = ToggleConfig.Flag or nil
 				ToggleConfig.Save = ToggleConfig.Save or false
+				ToggleConfig.Bind = ToggleConfig.Bind or nil         
+				ToggleConfig.BindFlag = ToggleConfig.BindFlag or nil  
 			
 				local Toggle = {
 					uccolor = ToggleConfig.Color ~= nil,
@@ -2563,12 +2672,16 @@ function OrionLib:MakeWindow(WindowConfig)
 					strokeTween = nil,
 					Type = "Toggle",
 					boxTween = nil,
-					Box = nil
+					Box = nil,
+					BindValue = ToggleConfig.Bind,
+					Binding = false
 				}
-
+			
 				if ToggleConfig.Flag then
 					OrionLib.Flags[ToggleConfig.Flag] = Toggle
 				end
+			
+				local hasBind = ToggleConfig.Bind ~= nil
 			
 				local Click = SetProps(MakeElement("Button"), {
 					Size = UDim2.new(1, 0, 1, 0)
@@ -2596,6 +2709,23 @@ function OrionLib:MakeWindow(WindowConfig)
 				})
 				Toggle.Box = ToggleBox
 			
+				local BindBox
+				if hasBind then
+					BindBox = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+						Size = UDim2.new(0, 24, 0, 24),
+						Position = UDim2.new(1, -44, 0.5, 0),
+						AnchorPoint = Vector2.new(1, 0.5)
+					}), {
+						AddThemeObject(MakeElement("Stroke"), "Stroke"),
+						AddThemeObject(SetProps(MakeElement("Label", "None", 14), {
+							Size = UDim2.new(1, 0, 1, 0),
+							Font = Enum.Font.GothamBold,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							Name = "Value"
+						}), "Text")
+					}), "Main")
+				end
+			
 				local ToggleFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
 					Parent = ItemParent
@@ -2608,6 +2738,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					}), "Text"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke"),
 					ToggleBox,
+					hasBind and BindBox or MakeElement("TFrame"),
 					Click
 				}), "Second")
 			
@@ -2649,7 +2780,25 @@ function OrionLib:MakeWindow(WindowConfig)
 					}):Play()
 				end)
 			
-				AddConnection(Click.MouseButton1Up, function()
+				AddConnection(Click.InputEnded, function(Input)
+					if Input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+			
+					if hasBind then
+						local bp = BindBox.AbsolutePosition
+						local bs = BindBox.AbsoluteSize
+						local mp = Input.Position
+			
+						local insideBind = mp.X >= bp.X and mp.X <= bp.X + bs.X
+							and mp.Y >= bp.Y and mp.Y <= bp.Y + bs.Y
+			
+						if insideBind then
+							if Toggle.Binding then return end
+							Toggle.Binding = true
+							BindBox.Value.Text = ""
+							return 
+						end
+					end
+			
 					vgs.TS:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 						BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)
 					}):Play()
@@ -2664,6 +2813,59 @@ function OrionLib:MakeWindow(WindowConfig)
 				end)
 			
 				table.insert(OrionLib.Toggles, Toggle)
+			
+			
+				if hasBind then
+					function Toggle:SetBind(Key)
+						Toggle.Binding = false
+						Toggle.BindValue = Key or Toggle.BindValue
+						local name = typeof(Toggle.BindValue) == "EnumItem" and Toggle.BindValue.Name or tostring(Toggle.BindValue)
+						BindBox.Value.Text = (name == "Unknown") and "None" or name
+						if ToggleConfig.BindFlag then
+							OrionLib.Flags[ToggleConfig.BindFlag] = {Value = name, Type = "PBind"}
+						end
+					end
+			
+					AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
+						vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+							Size = UDim2.new(0, BindBox.Value.TextBounds.X + 19, 0, 24)
+						}):Play()
+					end)
+			
+					AddConnection(vgs.UIS.InputBegan, function(Input)
+						if vgs.UIS:GetFocusedTextBox() then return end
+			
+						if Toggle.Binding then
+							local Key
+							pcall(function()
+								if Input.KeyCode == Enum.KeyCode.Backspace or Input.KeyCode == Enum.KeyCode.Return then
+									Key = Enum.KeyCode.Unknown
+								elseif not CheckKey(BlacklistedKeys, Input.KeyCode) then
+									Key = Input.KeyCode
+								end
+							end)
+							pcall(function()
+								if CheckKey(WhitelistedMouse, Input.UserInputType) and not Key then
+									Key = Input.UserInputType
+								end
+							end)
+							Key = Key or Toggle.BindValue
+							Toggle:SetBind(Key)
+							pcall(function() SaveCfg(game.GameId) end)
+							return
+						end
+			
+						local bv = Toggle.BindValue
+						if not bv or (typeof(bv) == "EnumItem" and bv.Name == "Unknown") then return end
+			
+						if Input.KeyCode == bv or Input.UserInputType == bv then
+							Toggle:Set(not Toggle.Value)
+							pcall(function() SaveCfg(game.GameId) end)
+						end
+					end)
+			
+					Toggle:SetBind(ToggleConfig.Bind)
+				end
 			
 				Toggle:Set(Toggle.Value, true)
 			
@@ -3125,6 +3327,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				DropdownConfig.Default = DropdownConfig.Default or ""
 				DropdownConfig.Multi = DropdownConfig.Multi or false
 				DropdownConfig.Call = DropdownConfig.Call or false
+				DropdownConfig.Deselect = DropdownConfig.Deselect or false
 				DropdownConfig.Searchable = DropdownConfig.Searchable or false
 				DropdownConfig.Grouped = DropdownConfig.Grouped or false
 				DropdownConfig.Icons = DropdownConfig.Icons or false
@@ -3134,6 +3337,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				DropdownConfig.Callback = DropdownConfig.Callback or function() end
 				DropdownConfig.Flag = DropdownConfig.Flag or nil
 				DropdownConfig.Save = DropdownConfig.Save or false
+				DropdownConfig.BackToPlayer = DropdownConfig.BackToPlayer or false
 			
 				local Dropdown = {
 					Value = DropdownConfig.Multi and {} or DropdownConfig.Default,
@@ -3141,16 +3345,54 @@ function OrionLib:MakeWindow(WindowConfig)
 					filOptns = {},
 					Buttons = {},
 					Groups = {},
+					Labels = {},
+					_optSig = nil,
 					Toggled = false,
 					srchTxt = "",
 					srchMode = false,
 					Type = "Dropdown",
 					Save = DropdownConfig.Save,
 					isPDrop = false,
-					Multi = DropdownConfig.Multi
+					Multi = DropdownConfig.Multi,
+					BackQueue = {}
 				}
 			
-				local function DtctPDrop()
+				if DropdownConfig.Multi then
+					if type(DropdownConfig.Default) == "table" then
+						for _, v in ipairs(DropdownConfig.Default) do
+							if table.find(Dropdown.Options, v) then
+								table.insert(Dropdown.Value, v)
+							end
+						end
+					elseif DropdownConfig.Default ~= nil then
+						if table.find(Dropdown.Options, DropdownConfig.Default) then
+							table.insert(Dropdown.Value, DropdownConfig.Default)
+						end
+					end
+				end
+			
+				local function OptTxtOf(option)
+				return type(option) == "table" and (option.text or option.name or tostring(option.value)) or tostring(option)
+			end
+			
+			local function OptsSig(opts, grouped)
+				local parts = {}
+				if grouped then
+					for gName, grpOpts in pairs(opts) do
+						table.insert(parts, "#" .. tostring(gName))
+						for _, o in pairs(grpOpts) do
+							table.insert(parts, OptTxtOf(o))
+						end
+					end
+				else
+					for _, o in pairs(opts) do
+						table.insert(parts, OptTxtOf(o))
+					end
+				end
+				return table.concat(parts, "\1")
+			end
+			
+			local function DtctPDrop()
 					for _, option in pairs(DropdownConfig.Options) do
 						local optTxt = type(option) == "table" and (option.text or option.name) or tostring(option)
 						local pName = optTxt:match("^(.-) %(") or optTxt
@@ -3162,7 +3404,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				end
 			
 				Dropdown.isPDrop = DtctPDrop()
-				local MaxElems = 5
+				local MaxElems = 3
 			
 				if not table.find(Dropdown.Options, Dropdown.Value) and not DropdownConfig.Multi then
 					Dropdown.Value = "..."
@@ -3233,7 +3475,9 @@ function OrionLib:MakeWindow(WindowConfig)
 					Size = UDim2.new(1, 0, 1, -(headerHeight + searchExtra)),
 					ClipsDescendants = true,
 					Visible = false,
-					ScrollBarImageTransparency = 1
+					ScrollBarImageTransparency = 1,
+					AutomaticCanvasSize = Enum.AutomaticSize.Y,
+					CanvasSize = UDim2.new(0, 0, 0, 0)
 				}), "Divider")
 			
 				local Click = SetProps(MakeElement("Button"), {
@@ -3272,7 +3516,8 @@ function OrionLib:MakeWindow(WindowConfig)
 							AnchorPoint = Vector2.new(0, 0.5),
 							Position = UDim2.new(1, -30, 0.5, 0),
 							ImageColor3 = Color3.fromRGB(240, 240, 240),
-							Name = "Arrow"
+							Name = "Arrow",
+							Rotation = 180,
 						}), "TextDark"),
 						SelectedLabel,
 						AddThemeObject(SetProps(MakeElement("Frame"), {
@@ -3295,10 +3540,8 @@ function OrionLib:MakeWindow(WindowConfig)
 			
 				function Dropdown:resname()
 					local nameWidth = ContentLabel.TextBounds.X + 12 + 8
-					local maxWidth = DdFrame.AbsoluteSize.X - 35
-					local selWidth = math.max(0, maxWidth - nameWidth)
 					SelectedLabel.Position = UDim2.new(0, nameWidth, 0, 0)
-					SelectedLabel.Size = UDim2.new(0, selWidth, 1, 0)
+					SelectedLabel.Size = UDim2.new(1, -(nameWidth + 38), 1, 0)
 				end
 			
 				AddConnection(ContentLabel:GetPropertyChangedSignal("TextBounds"), function()
@@ -3306,10 +3549,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				end)
 				AddConnection(DdFrame:GetPropertyChangedSignal("AbsoluteSize"), function()
 					Dropdown:resname()
-				end)
-			
-				AddConnection(DdList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-					DdCont.CanvasSize = UDim2.new(0, 0, 0, DdList.AbsoluteContentSize.Y)
 				end)
 			
 				local vconn = AddConnection(MainWindow:GetPropertyChangedSignal("Visible"), function()
@@ -3340,6 +3579,8 @@ function OrionLib:MakeWindow(WindowConfig)
 						optTxt = tostring(optData)
 						optVal = optData
 					end
+			
+					Dropdown.Labels[optVal] = optTxt
 			
 					if Dropdown.isPDrop then
 						local name, dispExt = optTxt:match("^(.-)%s%((.-)%)$")
@@ -3440,9 +3681,13 @@ function OrionLib:MakeWindow(WindowConfig)
 							else
 								table.insert(Dropdown.Value, optVal)
 							end
-							Dropdown:UpdSel()
 						else
-							Dropdown:Set(optVal)
+							if Dropdown.Value == optVal and DropdownConfig.Deselect then
+								Dropdown:Set("...") 
+							else
+								Dropdown:Set(optVal)
+							end
+						
 							Dropdown.Toggled = false
 							Dropdown.srchMode = false
 							if DropdownConfig.Searchable and SrchBox then
@@ -3452,6 +3697,7 @@ function OrionLib:MakeWindow(WindowConfig)
 							end
 							Dropdown:UpdVis()
 						end
+							Dropdown:UpdSel()
 						pcall(function() SaveCfg(game.GameId) end)
 					end)
 			
@@ -3521,21 +3767,34 @@ function OrionLib:MakeWindow(WindowConfig)
 						group.Visible = hasVis
 					end
 				end
-			
+				local staggerConn = nil
+				
 				local function StaggerAnim()
+					if staggerConn then
+						task.cancel(staggerConn)
+						staggerConn = nil
+					end
+				
 					local visibleBtns = {}
 					for _, btn in pairs(Dropdown.Buttons) do
 						if btn.Visible then table.insert(visibleBtns, btn) end
 					end
-					for i, btn in ipairs(visibleBtns) do
-						task.spawn(function()
-							task.wait((i - 1) * 0.02)
-							vgs.TS:Create(btn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-								Position = UDim2.new(0, 0, 0, 0),
-								BackgroundTransparency = btn.BackgroundTransparency
-							}):Play()
-						end)
-					end
+				
+					staggerConn = task.spawn(function()
+						for i, btn in ipairs(visibleBtns) do
+							if not Dropdown.Toggled then break end  
+							if btn and btn.Parent then
+								vgs.TS:Create(btn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+									Position = UDim2.new(0, 0, 0, 0),
+									BackgroundTransparency = btn.BackgroundTransparency
+								}):Play()
+							end
+							if i < #visibleBtns then
+								task.wait(0.02)
+							end
+						end
+						staggerConn = nil
+					end)
 				end
 			
 				function Dropdown:UpdSel(mode)
@@ -3544,16 +3803,18 @@ function OrionLib:MakeWindow(WindowConfig)
 						if type(self.Value) == "table" and #self.Value > 0 then
 							local vVals = {}
 							for _, v in pairs(self.Value) do
-								if type(v) == "string" or type(v) == "number" then
-									table.insert(vVals, tostring(v))
-								end
+								table.insert(vVals, self.Labels[v] or tostring(v))
 							end
 							selTxt = #vVals > 0 and table.concat(vVals, ", ") or "Select options"
 						else
 							selTxt = "Select options"
 						end
 					else
-						selTxt = tostring(self.Value ~= "" and self.Value or "Select option")
+						if self.Value == "" or self.Value == "..." then
+							selTxt = "Select option"
+						else
+							selTxt = self.Labels[self.Value] or tostring(self.Value)
+						end
 					end
 			
 					if DdFrame:FindFirstChild("Header") then
@@ -3627,6 +3888,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						for _, btn in pairs(self.Buttons) do
 							if btn.Visible then totBtns = totBtns + 1 end
 						end
+						
 						local btnH = self.isPDrop and 60 or 28
 						cntH = math.min(totBtns, MaxElems) * btnH + totSrchH
 					end
@@ -3667,111 +3929,130 @@ function OrionLib:MakeWindow(WindowConfig)
 						return self.Value == Value
 					end
 				end
-			
-				function Dropdown:Set(Value, AddMode)
-					if DropdownConfig.Multi then
-						local changed = false
-			
-						if AddMode ~= nil then
-							local values = type(Value) == "table" and Value or {Value}
-							for _, v in pairs(values) do
-								if not table.find(self.Options, v) then continue end
-								local index = table.find(self.Value, v)
-								if AddMode and not index then
-									table.insert(self.Value, v)
-									changed = true
-								elseif not AddMode and index then
-									table.remove(self.Value, index)
-									changed = true
-								end
-							end
+				
+				function Dropdown:Set(...)
+					local args = {...}
+					
+					local function resolve(input)
+						local iname, idis
+						if type(input) == "table" and input.Name and input.DisplayName then
+							iname = input.Name
+							idis = input.DisplayName
 						else
-							local newValues = type(Value) == "table" and Value or {Value}
-							local validValues = {}
-							for _, v in pairs(newValues) do
-								if table.find(self.Options, v) then table.insert(validValues, v) end
-							end
-							if #validValues ~= #self.Value then
-								changed = true
-							else
-								for _, v in pairs(validValues) do
-									if not table.find(self.Value, v) then changed = true break end
-								end
-							end
-							self.Value = validValues
+							iname = tostring(input)
+							idis = iname
 						end
-			
-						if changed then
-							self:UpdSel(1)
-							if DropdownConfig.Call then
-								pcall(function() DropdownConfig.Callback(self.Value) end)
+						
+						for _, opt in ipairs(self.Options) do
+							local val = type(opt) == "table" and (opt.value or opt.text or tostring(opt)) or opt
+							local txt = tostring(val)
+							
+							if txt == iname or txt == idis then
+								return val
 							end
-						end
-					else
-						if not table.find(self.Options, Value) then
-							self.Value = "..."
-							if DdFrame:FindFirstChild("Header") then
-								DdFrame.Header.Selected.Text = self.Value
-								Dropdown:resname()
+							
+							local name = txt:match("^(.-) %(")
+							if name and (name == iname or name == idis) then
+								return val
 							end
-							for _, v in pairs(self.Buttons) do
-								vgs.TS:Create(v, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-								if self.isPDrop then
-									if v:FindFirstChild("DisplayName") then vgs.TS:Create(v.DisplayName, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play() end
-									if v:FindFirstChild("Username") then vgs.TS:Create(v.Username, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play() end
-								else
-									if v:FindFirstChild("Title") then vgs.TS:Create(v.Title, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play() end
-								end
-							end
-							return
-						end
-			
-						self.Value = Value
-						DdFrame.Header.Selected.Text = self.Value
-						Dropdown:resname()
-			
-						for _, v in pairs(self.Buttons) do
-							vgs.TS:Create(v, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
-							if self.isPDrop then
-								if v:FindFirstChild("DisplayName") then vgs.TS:Create(v.DisplayName, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play() end
-								if v:FindFirstChild("Username") then vgs.TS:Create(v.Username, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play() end
-							else
-								if v:FindFirstChild("Title") then vgs.TS:Create(v.Title, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play() end
+							
+							local disp = txt:match("%((.-)%)$")
+							if disp and (disp == iname or disp == idis) then
+								return val
 							end
 						end
-			
-						if self.Buttons[Value] then
-							vgs.TS:Create(self.Buttons[Value], TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.2}):Play()
-							if self.isPDrop then
-								if self.Buttons[Value]:FindFirstChild("DisplayName") then vgs.TS:Create(self.Buttons[Value].DisplayName, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play() end
-								if self.Buttons[Value]:FindFirstChild("Username") then vgs.TS:Create(self.Buttons[Value].Username, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play() end
-							else
-								if self.Buttons[Value]:FindFirstChild("Title") then vgs.TS:Create(self.Buttons[Value].Title, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play() end
-							end
-						end
-			
-						pcall(function() DropdownConfig.Callback(self.Value) end)
+						return nil
 					end
+					
+					if not self.Multi then
+						local value = resolve(args[1])
+						self.Value = value or "..."
+						self:UpdSel()
+						pcall(DropdownConfig.Callback, self.Value)
+						return
+					end
+					
+					local replace = (type(args[#args]) == "boolean") and table.remove(args)
+					local newvals = {}
+					for _, v in ipairs(args) do
+						local r = resolve(v)
+						if r then table.insert(newvals, r) end
+					end
+					
+					if replace then
+						self.Value = newvals
+					else
+						for _, v in ipairs(newvals) do
+							if not table.find(self.Value, v) then
+								table.insert(self.Value, v)
+							end
+						end
+					end
+					
+					self:UpdSel(1)
+					pcall(DropdownConfig.Callback, self.Value)
 				end
+				
+				function Dropdown:Refresh(Options, Delete, HardReset)
+					local newSig = OptsSig(Options, DropdownConfig.Grouped)
 			
-				function Dropdown:Refresh(Options, Delete)
+					if Delete and not HardReset and self._optSig ~= nil and newSig == self._optSig then
+						return
+					end
+			
+					local prevLabels
 					if Delete then
+						if self.Multi then
+							prevLabels = {}
+							for _, v in pairs(self.Value) do
+								table.insert(prevLabels, self.Labels[v] or tostring(v))
+							end
+						elseif self.Value ~= "..." and self.Value ~= "" then
+							prevLabels = self.Labels[self.Value]
+						end
+			
 						for _, v in pairs(self.Buttons) do v:Destroy() end
 						for _, v in pairs(self.Groups) do v:Destroy() end
-						table.clear(self.Options)
 						table.clear(self.Buttons)
 						table.clear(self.Groups)
+						table.clear(self.Labels)
 					end
 					self.Options = Options
 					DropdownConfig.Options = Options
+					self._optSig = newSig
+				
 					self.isPDrop = DtctPDrop()
-			
+				
 					if DropdownConfig.Grouped then
 						for gName, grpOpts in pairs(Options) do CrtGrp(gName, grpOpts) end
 					else
 						for _, option in pairs(Options) do CrtOpt(option) end
 					end
-			
+					
+					if prevLabels then
+						if self.Multi then
+							local matched = {}
+							for optVal, label in pairs(self.Labels) do
+								if table.find(prevLabels, label) then
+									table.insert(matched, optVal)
+								end
+							end
+							self.Value = matched
+						else
+							local found = false
+							for optVal, label in pairs(self.Labels) do
+								if label == prevLabels then
+									self.Value = optVal
+									found = true
+									break
+								end
+							end
+							if not found then
+								self.Value = "..."
+							end
+						end
+					end
+				
 					if self.isPDrop then
 						local preload = {}
 						for _, option in pairs(Options) do
@@ -3785,15 +4066,17 @@ function OrionLib:MakeWindow(WindowConfig)
 							task.spawn(function() game:GetService("ContentProvider"):PreloadAsync(preload) end)
 						end
 					end
-			
+				
 					if DropdownConfig.Searchable and self.srchTxt ~= "" then FiltrOpts() end
 					if self.Toggled then self:UpdVis() end
 					self:UpdSel()
 				end
-			
+				
 				AddConnection(Click.MouseButton1Click, function()
 					Dropdown.Toggled = not Dropdown.Toggled
-					if not Dropdown.Toggled then Dropdown.srchMode = false end
+					if not Dropdown.Toggled then
+						Dropdown.srchMode = false
+					end
 					Dropdown:UpdVis()
 				end)
 			
@@ -3850,10 +4133,31 @@ function OrionLib:MakeWindow(WindowConfig)
 				if vgs and vgs.ps then
 					AddConnection(vgs.ps.PlayerAdded, function(plr)
 						Dropdown.isPDrop = DtctPDrop()
+						if DropdownConfig.BackToPlayer and #Dropdown.BackQueue > 0 then
+							for i = #Dropdown.BackQueue, 1, -1 do
+								local savedVal = Dropdown.BackQueue[i]
+								local n = tostring(savedVal):match("^(.-) %(") or tostring(savedVal)
+								if n == plr.Name then
+									table.remove(Dropdown.BackQueue, i)
+									if DropdownConfig.Multi then
+										if not table.find(Dropdown.Value, savedVal) then
+											table.insert(Dropdown.Value, savedVal)
+										end
+										pcall(function() DropdownConfig.Callback(Dropdown.Value) end)
+									else
+										Dropdown.Value = savedVal
+										pcall(function() DropdownConfig.Callback(Dropdown.Value) end)
+									end
+									Dropdown:UpdSel()
+									pcall(function() SaveCfg(game.GameId) end)
+									break
+								end
+							end
+						end
 						if DropdownConfig.Searchable and Dropdown.srchTxt ~= "" then FiltrOpts() end
 					end)
 			
-					vgs.ps.PlayerRemoving:Connect(function(plr)
+					local plrRemConn = AddConnection(vgs.ps.PlayerRemoving, function(plr)
 						if not Dropdown.isPDrop then return end
 						local pName = plr.Name
 			
@@ -3870,31 +4174,61 @@ function OrionLib:MakeWindow(WindowConfig)
 							end
 						end
 			
-						if DropdownConfig.Multi then
-							for i = #Dropdown.Value, 1, -1 do
-								local optTxt = Dropdown.Value[i]
-								local name = optTxt:match("^(.-) %(") or optTxt
-								if name == pName then table.remove(Dropdown.Value, i) end
-							end
-							DropdownConfig.Callback(Dropdown.Value)
-						else
-							local currName = Dropdown.Value:match("^(.-) %(") or Dropdown.Value
-							if currName == pName then
-								if DropdownConfig.PlrLeftNote then
-									OrionLib:MakeNotification({
-										Name = "Selected Player left.",
-										Content = plr.DisplayName .. " left the Game.",
-										Image = "rbxassetid://7733911828",
-										Time = 5
-									})
+						if DropdownConfig.BackToPlayer then
+							if DropdownConfig.Multi then
+								for i = #Dropdown.Value, 1, -1 do
+									local val = Dropdown.Value[i]
+									local n = tostring(val):match("^(.-) %(") or tostring(val)
+									if n == pName then
+										table.insert(Dropdown.BackQueue, val)
+										table.remove(Dropdown.Value, i)
+									end
 								end
-								Dropdown:Set("...")
+								pcall(function() DropdownConfig.Callback(Dropdown.Value) end)
+							else
+								local curr = Dropdown.Value
+								local n = tostring(curr):match("^(.-) %(") or tostring(curr)
+								if n == pName then
+									table.insert(Dropdown.BackQueue, curr)
+									Dropdown:Set("...")
+								end
+							end
+							Dropdown:UpdSel()
+							pcall(function() SaveCfg(game.GameId) end)
+						else
+							if DropdownConfig.Multi then
+								for i = #Dropdown.Value, 1, -1 do
+									local optTxt = Dropdown.Value[i]
+									local name = optTxt:match("^(.-) %(") or optTxt
+									if name == pName then table.remove(Dropdown.Value, i) end
+								end
+								DropdownConfig.Callback(Dropdown.Value)
+							else
+								local currName = Dropdown.Value:match("^(.-) %(") or Dropdown.Value
+								if currName == pName then
+									if DropdownConfig.PlrLeftNote then
+										OrionLib:MakeNotification({
+											Name = "Selected Player left.",
+											Content = plr.DisplayName .. " left the Game.",
+											Image = "rbxassetid://7733911828",
+											Time = 5
+										})
+									end
+									Dropdown:Set("...")
+								end
 							end
 						end
 			
 						Dropdown:UpdSel()
 						if DropdownConfig.Searchable and Dropdown.srchTxt ~= "" then FiltrOpts() end
 						if Dropdown.Toggled then Dropdown:UpdVis() end
+					end)
+			
+					AddConnection(DdFrame.Destroying, function()
+						if plrRemConn and plrRemConn.Connected then
+							plrRemConn:Disconnect()
+							connSet[plrRemConn] = nil
+						end
 					end)
 				end
 			
@@ -4441,6 +4775,18 @@ function OrionLib:MakeWindow(WindowConfig)
 				})
 			
 				gersec:AddSection()
+
+				gersec:AddDropdown({
+					Name = "UI Scale",
+					Options = {"80%", "95%", "100%", "110%"},
+					Default = "100%",
+					Flag = "UIScale",
+					Save = true,
+					Callback = function(Value)
+						local percent = tonumber(Value:match("%d+"))
+						Functions:SetUIScale(percent)
+					end
+				})
 				
 				gersec:AddToggle({
 					Name = "Save UI Configs",
@@ -4522,31 +4868,33 @@ function OrionLib:MakeWindow(WindowConfig)
 		
 			local SectionFrame = SetChildren(SetProps(MakeElement("TFrame"), {
 				Size = UDim2.new(1, 0, 0, height),
+				Visible = true,
 				Parent = Container
 			}), children)
-		
+			
 			local rkey = hn and name or ("section_" .. tostring(SectionFrame))
 			Relem(TabConfig.Name, rkey, SectionFrame)
-		
+			
+			local secEntry = nil
+			if SearchSystem.elmnts[TabConfig.Name] then
+				for _, v in pairs(SearchSystem.elmnts[TabConfig.Name]) do
+					if v.frame == SectionFrame then secEntry = v break end
+				end
+			end
+
 			AddConnection(SectionFrame.Holder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 				local contentY = SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y
 				SectionFrame.Size = UDim2.new(1, 0, 0, contentY + lh + (hn and 8 or 0))
 				SectionFrame.Holder.Size = UDim2.new(1, 0, 0, contentY)
 			end)
-		
+			
 			local SectionFunction = {}
-		
-			for i, v in next, Getelmnts(SectionFrame.Holder, TabConfig.Name) do
-				SectionFunction[i] = v
-			end
-		
+			
 			function SectionFunction:toggle()
 				SectionFrame.Visible = not SectionFrame.Visible
-				if SearchSystem.elmnts[TabConfig.Name] and SearchSystem.elmnts[TabConfig.Name][rkey] then
-					SearchSystem.elmnts[TabConfig.Name][rkey].visible = SectionFrame.Visible
-				end
+				if secEntry then secEntry.visible = SectionFrame.Visible end
 			end
-		
+
 			function SectionFunction:remove()
 				if SearchSystem.elmnts[TabConfig.Name] then
 					SearchSystem.elmnts[TabConfig.Name][rkey] = nil
@@ -4555,8 +4903,9 @@ function OrionLib:MakeWindow(WindowConfig)
 					SectionFrame:Destroy()
 				end
 			end
-		
+			
 			return SectionFunction
+			
 		end
 
 		for i, v in next, Getelmnts(Container, TabConfig.Name) do
@@ -4607,7 +4956,6 @@ function OrionLib:MakeWindow(WindowConfig)
 	
 	return Functions
 end
-
 --sep                                                                  
 --# THE EEEEEEEEEEEEEEEEEENDDDD(i hope u enjoyed my code:D // ps: "my code" | 30% mine and 70% of Orion Library Creator)
 
