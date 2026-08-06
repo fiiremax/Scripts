@@ -2951,7 +2951,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Toggle.boxTween = vgs.TS:Create(ToggleBox, ti, {
 						BackgroundColor3 = Toggle.Value and ac or OrionLib.Themes[OrionLib.SelectedTheme].Divider
 					})
-					Toggle.strokeTween = vgs.TS:Create(ToggleBox.Stroke, ti, {
+					Toggle.strokeTween = vgs.TS:Create(ToggleBox:FindFirstChild("Stroke"), ti, {
 						Color = Toggle.Value and ac or OrionLib.Themes[OrionLib.SelectedTheme].Stroke
 					})
 					Toggle.boxTween:Play()
@@ -3056,17 +3056,21 @@ function OrionLib:MakeWindow(WindowConfig)
 						local bv = Toggle.BindValue
 						if not bv or (typeof(bv) == "EnumItem" and bv.Name == "Unknown") then return end
 			
-						if Input.KeyCode == bv or Input.UserInputType == bv then
+						if (Input.KeyCode == bv or Input.UserInputType == bv) and BindBox.Value.Text ~= "None" then
 							Toggle:Set(not Toggle.Value)
 							pcall(function() SaveCfg(game.GameId) end)
 						end
 					end)
 			
 					Toggle:SetBind(ToggleConfig.Bind)
+
+					vgs.TS:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						Size = UDim2.new(0, BindBox.Value.TextBounds.X + 19, 0, 24)
+					}):Play()
 				end
-			
+
+
 				Toggle:Set(Toggle.Value, true)
-			
 				return Toggle
 			end
 			
